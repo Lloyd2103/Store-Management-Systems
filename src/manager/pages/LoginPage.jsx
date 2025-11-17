@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import config from '../config';
+import config from '../constants/config';
 
 const LoginPage = ({ onLogin }) => {
     const [activeTab, setActiveTab] = useState('login'); // 'login' or 'register'

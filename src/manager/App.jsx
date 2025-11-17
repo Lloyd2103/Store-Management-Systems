@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Users, Package, ShoppingCart, Truck, ClipboardList, Package2, Loader2, Plus, X, BarChart3, Search, Filter } from 'lucide-react';
-import LoginPage from './components/LoginPage';
-import ReportsPage from './components/ReportsPage';
+import LoginPage from './pages/LoginPage';
+import ReportsPage from './pages/ReportsPage';
 import { POSITION_PERMISSIONS } from './utils/permissions';
-import config from './config';
+import config from './constants/config';
 
 const API_BASE_URL = config.API_BASE_URL;
 const TABS = {
