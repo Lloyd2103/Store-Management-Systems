@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, Package, ShoppingCart, Truck, ClipboardList, Package2, Loader2, Plus, X, BarChart3, Search, Filter } from 'lucide-react';
+import { Users, Package, ShoppingCart, Truck, ClipboardList, Package2, Loader2, Plus, X, BarChart3, Search, Filter, Edit, Trash2, Eye } from 'lucide-react';
 import LoginPage from './pages/LoginPage';
 import ReportsPage from './pages/ReportsPage';
 import { POSITION_PERMISSIONS } from './utils/permissions';
@@ -16,6 +16,8 @@ const TABS = {
     inventory: { label: 'Kho', icon: Package2, endpoint: '/inventories' },
     reports: { label: 'Báo cáo', icon: BarChart3, endpoint: '/reports' },
 };
+
+
 
 const LoadingSpinner = () => (
     <div className="flex items-center justify-center p-8 text-indigo-600">
@@ -122,7 +124,65 @@ const getColumnDisplayName = (columnName) => {
     return displayNames[columnName] || columnName.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
 };
 
-const DataTable = ({ data, onRowClick, selectedRows, onSelectRow }) => {
+const ActionButtons = ({ onEdit, onDelete, onView, activeTab }) => {
+    // For orders, vendors, inventory: show View, Edit, Delete
+    // For others: show Edit, Delete
+    const needsView = ['orders', 'vendors', 'inventory'].includes(activeTab);
+
+    return (
+        <div className="flex gap-2">
+            {needsView && (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onView();
+                    }}
+                    className="p-1.5 rounded text-gray-600 hover:bg-blue-50 bg-white transition-colors"
+                    title="Xem chi tiết"
+                >
+                    <Eye className="w-4 h-4" />
+                </button>
+            )}
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit();
+                }}
+                className="p-1.5 rounded text-blue-600 hover:bg-blue-50 bg-white transition-colors"
+                title="Sửa"
+            >
+                <Edit className="w-4 h-4" />
+            </button>
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete();
+                }}
+                className="p-1.5 rounded text-red-600 hover:bg-red-50 bg-white transition-colors"
+                title="Xóa"
+            >
+                <Trash2 className="w-4 h-4" />
+            </button>
+        </div>
+    );
+};
+
+const DataTable = ({ data, onRowClick, onItemEdit, onItemDelete, selectedRows, onSelectRow, activeTab }) => {
+    const handleEdit = useCallback((item) => {
+        if (onItemEdit) {
+            onItemEdit(item);
+        } else {
+            // Fallback for old behavior
+            onRowClick(item);
+        }
+    }, [onItemEdit, onRowClick]);
+
+    const handleDelete = useCallback((item) => {
+        if (onItemDelete) {
+            onItemDelete(item);
+        }
+    }, [onItemDelete]);
+
     if (!data || data.length === 0) {
         return <div className="p-4 text-gray-500 text-center">Không có dữ liệu để hiển thị.</div>;
     }
@@ -132,48 +192,44 @@ const DataTable = ({ data, onRowClick, selectedRows, onSelectRow }) => {
 
     return (
         <div className="overflow-x-auto bg-white rounded shadow-lg">
-            <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-blue-900">
+                <thead className="bg-blue-100 sticky top-0">
                     <tr>
                         <th className="px-2 py-1">
                             <input
                                 type="checkbox"
-
                                 onChange={(e) => onSelectRow(e.target.checked ? data.map((item) => item[idKey]) : [])}
                                 checked={selectedRows.length === data.length}
                                 className="w-3 h-3"
                             />
                         </th>
                         {columns.map((col) => (
-                            <th key={col} className="px-3 py-2 text-left text-xs font-medium text-gray-500 tracking-wider">
+                            <th key={col} className="px-3 py-2 text-left text-xs font-medium text-blue-800 tracking-wider">
                                 {getColumnDisplayName(col)}
                             </th>
                         ))}
+                        <th className="px-3 py-2 text-left text-xs font-medium text-blue-800 tracking-wider">
+                            {/* Action column - no header text as requested */}
+                        </th>
                     </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-blue-200">
                     {data.map((item, index) => (
                         <tr
                             key={index}
-                            onClick={() => onRowClick(item)}
-                            className={`cursor-pointer transition duration-150 ${selectedRows.includes(item[idKey]) ? 'bg-indigo-50' : 'hover:bg-gray-50'
-                                }`}
+                            className={`transition duration-150 ${selectedRows.includes(item[idKey]) ? 'bg-indigo-50' : 'hover:bg-gray-100'}`}
                         >
                             <td className="px-2 py-1">
                                 <input
                                     type="checkbox"
                                     className="w-3 h-3"
                                     checked={selectedRows.includes(item[idKey])} onChange={(e) => {
-                                        e.stopPropagation();
                                         onSelectRow(
                                             e.target.checked
                                                 ? [...selectedRows, item[idKey]]
                                                 : selectedRows.filter((id) => id !== item[idKey])
                                         );
                                     }}
-                                    onClick={(e) => e.stopPropagation()}
-
-
                                 />
                             </td>
                             {columns.map((col) => {
@@ -185,6 +241,14 @@ const DataTable = ({ data, onRowClick, selectedRows, onSelectRow }) => {
                                     </td>
                                 );
                             })}
+                            <td className="px-3 py-1 whitespace-nowrap text-xs text-gray-900">
+                                <ActionButtons
+                                    onEdit={() => handleEdit(item)}
+                                    onDelete={() => handleDelete(item)}
+                                    onView={() => onRowClick(item)}
+                                    activeTab={activeTab}
+                                />
+                            </td>
                         </tr>
                     ))}
                 </tbody>
@@ -310,14 +374,20 @@ const OrderDetailsModal = ({ orderDetails, onClose, isLoading }) => {
     );
 };
 
-// Relations Modal Component
-const RelationsModal = ({ data, type, onClose, onEdit }) => {
+    // Relations Modal Component
+const RelationsModal = ({ data, type, onClose, onEdit, activeTab, selectedItem, user }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [editData, setEditData] = useState(selectedItem || {});
+
     const formatCurrency = (value) => {
         if (value === null || value === undefined) return '0';
         return Number(value).toLocaleString('vi-VN');
     };
 
     const getTitle = () => {
+        if (isEditing) {
+            return activeTab === 'vendors' ? 'Chỉnh sửa Nhà cung cấp' : 'Chỉnh sửa Kho';
+        }
         switch (type) {
             case 'product-relations':
                 return 'Quan hệ Sản phẩm';
@@ -329,6 +399,124 @@ const RelationsModal = ({ data, type, onClose, onEdit }) => {
                 return 'Quan hệ';
         }
     };
+
+    const handleEditChange = (e) => {
+        const { name, value, inputType } = e.target;
+        let processedValue = value;
+        if (inputType === 'number') {
+            processedValue = value === '' ? '' : Number(value);
+        }
+        setEditData({ ...editData, [name]: processedValue });
+    };
+
+    const handleSaveEdit = async () => {
+        try {
+            const endpoint = `${API_BASE_URL}${TABS[activeTab].endpoint}/${editData[Object.keys(editData)[0]]}`;
+            const response = await fetch(endpoint, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.token}`,
+                },
+                body: JSON.stringify(editData)
+            });
+
+            if (!response.ok) throw new Error('Lỗi khi cập nhật dữ liệu');
+            setIsEditing(false);
+            onEdit(); // Trigger refresh in parent
+            alert('Cập nhật thành công!');
+        } catch (err) {
+            alert('Lỗi khi cập nhật: ' + err.message);
+        }
+    };
+
+    const getInputType = (key) => {
+        const k = key.toLowerCase();
+        if (k === 'password') return 'password';
+        if (k.includes('email')) return 'email';
+        if (k.includes('phone')) return 'tel';
+        if (k.includes('date')) return 'date';
+        if (k.includes('point') || k.includes('quantity') || k.includes('warranty')) return 'number';
+        if (k.includes('price') || k.includes('amount') || k.includes('cost') || k.includes('salary')) return 'number';
+        if (k === 'position') return 'select';
+        if (k.includes('status') || k.includes('method') || k.includes('type')) return 'select';
+        return 'text';
+    };
+
+    const getSelectOptions = (key) => {
+        const options = {
+            orderStatus: ['Pending', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled'],
+            pickupMethod: ['Ship', 'StorePickup'],
+            shippedStatus: ['Shipped', 'Cancelled', 'On Hold', 'In Process'],
+            paymentStatus: ['Unpaid', 'Partial', 'Paid', 'Refunded'],
+            paymentMethod: ['Cash', 'Credit Card', 'Bank Transfer', 'E-Wallet', 'Check'],
+            customerType: ['Individual', 'Corporate', 'Partner', 'Reseller'],
+            loyalLevel: ['New', 'Bronze', 'Silver', 'Gold', 'Platinum'],
+            inventoryStatus: ['Active', 'Inactive', 'Low Stock', 'Out of Stock'],
+            roleStore: ['Import', 'Export', 'Stocktaking', 'Manual', 'Initial', 'Update'],
+            vendorStatus: ['Active', 'Inactive', 'Pending', 'Blacklisted'],
+            transactionStatus: ['Pending', 'Completed', 'Failed', 'Refunded']
+        };
+        if (key === 'position') return ['Manager', 'Sales', 'Inventory'];
+        return options[key] || [];
+    };
+
+    if (isEditing) {
+        // Edit mode - show form to edit selectedItem
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 z-50">
+                <div className="bg-white rounded p-4 w-full max-w-md shadow-xl relative max-h-[90vh] overflow-hidden">
+                    <button onClick={() => setIsEditing(false)} className="absolute top-2 right-2 text-gray-400 hover:text-red-600">
+                        <X className="w-4 h-4" />
+                    </button>
+                    <h2 className="text-lg font-bold text-indigo-700 mb-3">{getTitle()}</h2>
+                    <form onSubmit={(e) => { e.preventDefault(); handleSaveEdit(); }} className="space-y-2 max-h-[70vh] overflow-y-auto">
+                        {Object.entries(editData)
+                            .filter(([key]) => {
+                                const hiddenFields = ['lastedUpdate', 'orderDate', 'shippedDate', 'paymentDate'];
+                                return !hiddenFields.includes(key) && !key.toLowerCase().includes('id');
+                            })
+                            .map(([key]) => {
+                                const inputType = getInputType(key);
+                                return (
+                                    <div key={key}>
+                                        <label className="block text-xs font-medium text-blue-600 mb-1">
+                                            {getColumnDisplayName(key)}
+                                        </label>
+                                        {inputType === 'select' ? (
+                                            <select
+                                                name={key}
+                                                value={editData[key] ?? ''}
+                                                onChange={handleEditChange}
+                                                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                            >
+                                                <option value="">Chọn {getColumnDisplayName(key)}</option>
+                                                {getSelectOptions(key).map(option => (
+                                                    <option key={option} value={option}>{option}</option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <input
+                                                name={key}
+                                                type={inputType}
+                                                value={editData[key] ?? ''}
+                                                onChange={handleEditChange}
+                                                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                                min={inputType === 'number' ? 0 : undefined}
+                                                step={inputType === 'number' ? 'any' : undefined}
+                                            />
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        <button type="submit" className="w-full bg-indigo-600 text-white py-1.5 rounded text-sm">
+                            Lưu thay đổi
+                        </button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
 
     if (type === 'product-relations' && data.inventory && data.suppliers) {
         return (
@@ -379,11 +567,11 @@ const RelationsModal = ({ data, type, onClose, onEdit }) => {
                                     <table className="min-w-full divide-y divide-gray-200 text-xs">
                                         <thead className="bg-gray-50">
                                             <tr>
-                                                <th className="px-2 py-1 text-left">Mã NCC</th>
-                                                <th className="px-2 py-1 text-left">Tên NCC</th>
-                                                <th className="px-2 py-1 text-left">Số lượng</th>
-                                                <th className="px-2 py-1 text-left">Ngày cung cấp</th>
-                                                <th className="px-2 py-1 text-left">Ghi chú</th>
+                                                <th className="px-2 py-1 text-left text-blue-600">Mã NCC</th>
+                                                <th className="px-2 py-1 text-left text-blue-600">Tên NCC</th>
+                                                <th className="px-2 py-1 text-left text-blue-600">Số lượng</th>
+                                                <th className="px-2 py-1 text-left text-blue-600">Ngày cung cấp</th>
+                                                <th className="px-2 py-1 text-left text-blue-600">Ghi chú</th>
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
@@ -407,20 +595,20 @@ const RelationsModal = ({ data, type, onClose, onEdit }) => {
                         )}
                     </div>
 
-                    <div className="flex gap-2 mt-4">
-                        <button
-                            onClick={onEdit}
-                            className="flex-1 bg-indigo-600 text-white py-2 rounded text-sm hover:bg-indigo-700"
-                        >
-                            Chỉnh sửa
-                        </button>
-                        <button
-                            onClick={onClose}
-                            className="flex-1 bg-gray-300 text-gray-700 py-2 rounded text-sm hover:bg-gray-400"
-                        >
-                            Đóng
-                        </button>
-                    </div>
+                <div className="flex gap-2 mt-4">
+                    <button
+                        onClick={() => setIsEditing(true)}
+                        className="flex-1 bg-indigo-600 text-white py-2 rounded text-sm hover:bg-indigo-700"
+                    >
+                        Chỉnh sửa
+                    </button>
+                    <button
+                        onClick={onClose}
+                        className="flex-1 bg-gray-300 text-gray-700 py-2 rounded text-sm hover:bg-gray-400"
+                    >
+                        Đóng
+                    </button>
+                </div>
                 </div>
             </div>
         );
@@ -443,19 +631,19 @@ const RelationsModal = ({ data, type, onClose, onEdit }) => {
                                     <tr>
                                         {type === 'vendor-products' && (
                                             <>
-                                                <th className="px-2 py-1 text-left">Mã SP</th>
-                                                <th className="px-2 py-1 text-left">Tên sản phẩm</th>
-                                                <th className="px-2 py-1 text-left">Số lượng</th>
-                                                <th className="px-2 py-1 text-left">Ngày cung cấp</th>
+                                                <th className="px-2 py-1 text-left text-blue-600">Mã SP</th>
+                                                <th className="px-2 py-1 text-left text-blue-600">Tên sản phẩm</th>
+                                                <th className="px-2 py-1 text-left text-blue-600">Số lượng</th>
+                                                <th className="px-2 py-1 text-left text-blue-600">Ngày cung cấp</th>
                                             </>
                                         )}
                                         {type === 'inventory-products' && (
                                             <>
-                                                <th className="px-2 py-1 text-left">Mã SP</th>
-                                                <th className="px-2 py-1 text-left">Tên sản phẩm</th>
-                                                <th className="px-2 py-1 text-left">Số lượng</th>
-                                                <th className="px-2 py-1 text-left">Ngày lưu</th>
-                                                <th className="px-2 py-1 text-left">Loại</th>
+                                                <th className="px-2 py-1 text-left text-blue-600">Mã SP</th>
+                                                <th className="px-2 py-1 text-left text-blue-600">Tên sản phẩm</th>
+                                                <th className="px-2 py-1 text-left text-blue-600">Số lượng</th>
+                                                <th className="px-2 py-1 text-left text-blue-600">Ngày lưu</th>
+                                                <th className="px-2 py-1 text-left text-blue-600">Loại</th>
                                             </>
                                         )}
                                     </tr>
@@ -465,19 +653,19 @@ const RelationsModal = ({ data, type, onClose, onEdit }) => {
                                         <tr key={index}>
                                             {type === 'vendor-products' && (
                                                 <>
-                                                    <td className="px-2 py-1">{item.productID}</td>
-                                                    <td className="px-2 py-1">{item.productName}</td>
-                                                    <td className="px-2 py-1">{formatCurrency(item.quantitySupplier)}</td>
-                                                    <td className="px-2 py-1">{item.supplyDate ? new Date(item.supplyDate).toLocaleDateString('vi-VN') : ''}</td>
+                                                    <td className="px-2 py-1 text-black">{item.productID}</td>
+                                                    <td className="px-2 py-1 text-black">{item.productName}</td>
+                                                    <td className="px-2 py-1 text-black">{formatCurrency(item.quantitySupplier)}</td>
+                                                    <td className="px-2 py-1 text-black">{item.supplyDate ? new Date(item.supplyDate).toLocaleDateString('vi-VN') : ''}</td>
                                                 </>
                                             )}
                                             {type === 'inventory-products' && (
                                                 <>
-                                                    <td className="px-2 py-1">{item.productID}</td>
-                                                    <td className="px-2 py-1">{item.productName}</td>
-                                                    <td className="px-2 py-1">{formatCurrency(item.quantityStore)}</td>
-                                                    <td className="px-2 py-1">{item.storeDate ? new Date(item.storeDate).toLocaleDateString('vi-VN') : ''}</td>
-                                                    <td className="px-2 py-1">{item.roleStore}</td>
+                                                    <td className="px-2 py-1 text-black">{item.productID}</td>
+                                                    <td className="px-2 py-1 text-black">{item.productName}</td>
+                                                    <td className="px-2 py-1 text-black">{formatCurrency(item.quantityStore)}</td>
+                                                    <td className="px-2 py-1 text-black">{item.storeDate ? new Date(item.storeDate).toLocaleDateString('vi-VN') : ''}</td>
+                                                    <td className="px-2 py-1 text-black">{item.roleStore}</td>
                                                 </>
                                             )}
                                         </tr>
@@ -492,7 +680,7 @@ const RelationsModal = ({ data, type, onClose, onEdit }) => {
 
                 <div className="flex gap-2 mt-4">
                     <button
-                        onClick={onEdit}
+                        onClick={() => setIsEditing(true)}
                         className="flex-1 bg-indigo-600 text-white py-2 rounded text-sm hover:bg-indigo-700"
                     >
                         Chỉnh sửa
@@ -509,7 +697,7 @@ const RelationsModal = ({ data, type, onClose, onEdit }) => {
     );
 };
 
-const FormModal = ({ data, onSave, onCancel, mode = 'edit', products = [], inventories = [], vendors = [] }) => {
+const FormModal = ({ data, onSave, onCancel, mode = 'edit' }) => {
     const [formData, setFormData] = useState(data || {});
 
     const handleChange = (e) => {
@@ -560,17 +748,17 @@ const FormModal = ({ data, onSave, onCancel, mode = 'edit', products = [], inven
             transactionStatus: ['Pending', 'Completed', 'Failed', 'Refunded']
         };
         // special-case: position selection for staff accounts
-        if (key === 'position') return ['Admin', 'Manager', 'Sales', 'Inventory', 'Cashier'];
+        if (key === 'position') return ['Manager', 'Sales', 'Inventory', ];
         return options[key] || [];
     };
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 z-50">
             <div className="bg-white rounded p-4 w-full max-w-md shadow-xl relative">
-                <button onClick={onCancel} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
+                <button onClick={onCancel} className="absolute top-2 right-2 text-gray-400 hover:text-red-600">
                     <X className="w-4 h-4" />
                 </button>
-                <h2 className="text-lg font-bold text-indigo-700 mb-3">{title}</h2>
+                <h2 className="text-lg font-bold text-indigo-700 mb-3 ">{title}</h2>
                 <form onSubmit={handleSubmit} className="space-y-2 max-h-[70vh] overflow-y-auto">
                     {Object.entries(mode === 'edit' ? formData : data)
                         .filter(([key]) => {
@@ -581,7 +769,7 @@ const FormModal = ({ data, onSave, onCancel, mode = 'edit', products = [], inven
                             const inputType = getInputType(key);
                             return (
                                 <div key={key}>
-                                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                                    <label className="block text-xs font-medium text-blue-600 mb-1 ">
                                         {getColumnDisplayName(key)}
                                     </label>
                                     {inputType === 'select' ? (
@@ -589,55 +777,14 @@ const FormModal = ({ data, onSave, onCancel, mode = 'edit', products = [], inven
                                             name={key}
                                             value={formData[key] ?? ''}
                                             onChange={handleChange}
-                                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm "
                                         >
                                             <option value="">Chọn {getColumnDisplayName(key)}</option>
                                             {getSelectOptions(key).map(option => (
                                                 <option key={option} value={option}>{option}</option>
                                             ))}
                                         </select>
-                                    ) : inputType === 'product-select' ? (
-                                        <select
-                                            name={key}
-                                            value={formData[key] ?? ''}
-                                            onChange={handleChange}
-                                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                                        >
-                                            <option value="">Chọn sản phẩm</option>
-                                            {products.map(product => (
-                                                <option key={product.productID} value={product.productID}>
-                                                    {product.productID} - {product.productName}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    ) : inputType === 'inventory-select' ? (
-                                        <select
-                                            name={key}
-                                            value={formData[key] ?? ''}
-                                            onChange={handleChange}
-                                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                                        >
-                                            <option value="">Chọn kho</option>
-                                            {inventories.map(inv => (
-                                                <option key={inv.inventoryID} value={inv.inventoryID}>
-                                                    {inv.inventoryID} - {inv.warehouse || 'N/A'}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    ) : inputType === 'vendor-select' ? (
-                                        <select
-                                            name={key}
-                                            value={formData[key] ?? ''}
-                                            onChange={handleChange}
-                                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                                        >
-                                            <option value="">Chọn nhà cung cấp</option>
-                                            {vendors.map(vendor => (
-                                                <option key={vendor.vendorID} value={vendor.vendorID}>
-                                                    {vendor.vendorID} - {vendor.vendorName}
-                                                </option>
-                                            ))}
-                                        </select>
+                                    
                                     ) : (
                                         <input
                                             name={key}
@@ -841,43 +988,15 @@ export default function App() {
     }, [user, handleLogout]);
 
     const handleRowClick = async (item) => {
+        setSelectedItem(item); // Always set the clicked item for potential editing
+
         // Nếu đang ở tab đơn hàng, gọi API để lấy chi tiết đơn hàng
         if (activeTab === 'orders') {
             const orderID = item.orderID;
             if (orderID) {
                 fetchOrderDetails(orderID);
             }
-        } else if (activeTab === 'products') {
-            // Hiển thị quan hệ inventory và suppliers của product
-            try {
-                const [inventoryRes, suppliersRes] = await Promise.all([
-                    fetch(`${API_BASE_URL}/products/${item.productID}/inventory`),
-                    fetch(`${API_BASE_URL}/products/${item.productID}/suppliers`)
-                ]);
-
-                const inventoryData = await inventoryRes.json();
-                const suppliersData = await suppliersRes.json();
-
-                if (inventoryData.length > 0 || suppliersData.length > 0) {
-                    setRelationsData({
-                        inventory: inventoryData,
-                        suppliers: suppliersData
-                    });
-                    setRelationsType('product-relations');
-                    setShowRelationsModal(true);
-                } else {
-                    // Nếu không có quan hệ, hiển thị form edit
-                    setSelectedItem(item);
-                    setModalMode('edit');
-                    setShowModal(true);
-                }
-            } catch (err) {
-                console.error('Error loading product relations:', err);
-                // Fallback to edit modal
-                setSelectedItem(item);
-                setModalMode('edit');
-                setShowModal(true);
-            }
+        
         } else if (activeTab === 'vendors') {
             // Hiển thị products được supply bởi vendor
             try {
@@ -889,13 +1008,11 @@ export default function App() {
                     setRelationsType('vendor-products');
                     setShowRelationsModal(true);
                 } else {
-                    setSelectedItem(item);
                     setModalMode('edit');
                     setShowModal(true);
                 }
             } catch (err) {
                 console.error('Error loading vendor products:', err);
-                setSelectedItem(item);
                 setModalMode('edit');
                 setShowModal(true);
             }
@@ -910,19 +1027,16 @@ export default function App() {
                     setRelationsType('inventory-products');
                     setShowRelationsModal(true);
                 } else {
-                    setSelectedItem(item);
                     setModalMode('edit');
                     setShowModal(true);
                 }
             } catch (err) {
                 console.error('Error loading inventory products:', err);
-                setSelectedItem(item);
                 setModalMode('edit');
                 setShowModal(true);
             }
         } else {
             // Các tab khác giữ nguyên hành vi cũ
-            setSelectedItem(item);
             setModalMode('edit');
             setShowModal(true);
         }
@@ -1052,6 +1166,39 @@ export default function App() {
         }
     };
 
+    const handleItemEdit = useCallback((item) => {
+        setSelectedItem(item);
+        setModalMode('edit');
+        setShowModal(true);
+    }, []);
+
+    const handleItemDelete = useCallback(async (item) => {
+        const permissions = POSITION_PERMISSIONS[user.position]?.[activeTab];
+        if (!permissions || !permissions.includes('delete')) {
+            alert('Bạn không có quyền xóa dữ liệu');
+            return;
+        }
+
+        const columns = Object.keys(item);
+        const idKey = columns.find((c) => c.toLowerCase().endsWith("id")) || columns[0];
+        const id = item[idKey];
+
+        if (!window.confirm('Bạn có chắc muốn xóa bản ghi này?')) return;
+
+        try {
+            const endpoint = `${API_BASE_URL}${TABS[activeTab].endpoint}/${id}`;
+            await fetch(endpoint, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${user.token}`,
+                },
+            });
+            fetchData(activeTab);
+        } catch (err) {
+            alert('Lỗi khi xóa: ' + err.message);
+        }
+    }, [user, activeTab, fetchData]);
+
     const handleDeleteSelected = async () => {
         const permissions = POSITION_PERMISSIONS[user.position]?.[activeTab];
         if (!permissions || !permissions.includes('delete')) {
@@ -1150,17 +1297,17 @@ export default function App() {
 
                             {/* Search and Filters */}
                             <div className="mb-3 flex flex-wrap gap-2">
-                                <div className="flex-1 min-w-[200px]">
-                                    <div className="relative">
-                                        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                        <input
-                                            type="text"
-                                            placeholder="Tìm kiếm..."
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                            className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                        />
-                                    </div>
+                                <div className="flex-1 min-w-[200px] ">
+                                        <div className="relative">
+                                            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                            <input
+                                                type="text"
+                                                placeholder="Tìm kiếm..."
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                className="w pl-8 pr-3 py-2 border border-blue-900   rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-200 text-black"
+                                            />
+                                        </div>
                                 </div>
                                 {activeTab === 'products' && categories.length > 0 && (
                                     <select
@@ -1199,6 +1346,9 @@ export default function App() {
                                         onRowClick={handleRowClick}
                                         selectedRows={selectedRows}
                                         onSelectRow={setSelectedRows}
+                                        onItemEdit={handleItemEdit}
+                                        onItemDelete={handleItemDelete}
+                                        activeTab={activeTab}
                                     />
                                 )}
                             </div>
@@ -1229,25 +1379,18 @@ export default function App() {
                         setRelationsType('');
                     }}
                     onEdit={() => {
-                        setShowRelationsModal(false);
-                        // Find the item to edit based on relations type
-                        let itemToEdit = null;
-                        if (activeTab === 'products') {
-                            const productId = relationsData.inventory?.[0]?.productID || relationsData.suppliers?.[0]?.productID;
-                            itemToEdit = data.find(item => item.productID === productId);
-                        } else if (activeTab === 'vendors') {
-                            const vendorId = relationsData[0]?.vendorID;
-                            itemToEdit = data.find(item => item.vendorID === vendorId);
-                        } else if (activeTab === 'inventory') {
-                            const inventoryId = relationsData[0]?.inventoryID;
-                            itemToEdit = data.find(item => item.inventoryID === inventoryId);
-                        }
-                        if (itemToEdit) {
-                            setSelectedItem(itemToEdit);
+                        // The selectedItem is already set by handleRowClick.
+                        // We can now open the edit modal for it.
+                        if (selectedItem) {
                             setModalMode('edit');
                             setShowModal(true);
                         }
+                        setShowRelationsModal(false);
                     }}
+                    activeTab={activeTab}
+                    selectedItem={selectedItem}
+                    user={user}
+                    refreshData={() => fetchData(activeTab)}
                 />
             )}
 

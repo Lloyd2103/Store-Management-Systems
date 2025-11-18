@@ -39,13 +39,12 @@ SELECT_PRODUCT_SUPPLIERS = """
     SELECT
         v.*,
         s.supplyDate,
-        s.quantitySupplier,
-        
+        s.quantitySupplier
     FROM tbl_vendor v
     INNER JOIN tbl_supplies s ON v.vendorID = s.vendorID
     WHERE s.productID = %s
     ORDER BY s.supplyDate DESC
-"""
+    """
 INSERT_PRODUCT = """
     INSERT INTO tbl_product (
         productName, priceEach, productLine, productScale,
@@ -137,7 +136,7 @@ SELECT_VENDOR_PRODUCTS = """
         p.MSRP,
         s.supplyDate,
         s.quantitySupplier,
-        s.note
+        s.handledBy
     FROM tbl_product p
     INNER JOIN tbl_supplies s ON p.productID = s.productID
     WHERE s.vendorID = %s
