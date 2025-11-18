@@ -5,20 +5,17 @@ import { ShoppingCart } from "lucide-react";
 export default function CartView({ cart, setCart, customer }) {
   const navigate = useNavigate();
 
-  // ✅ Tính tổng tiền
   const totalPrice = cart.reduce(
     (sum, item) => sum + Number(item.priceEach || 0) * item.quantity,
     0
   );
 
-  // ✅ Xóa một sản phẩm khỏi giỏ
   const handleRemove = (productID) => {
     const updated = cart.filter((item) => item.productID !== productID);
     setCart(updated);
     localStorage.setItem("cart", JSON.stringify(updated));
   };
 
-  // ✅ Thanh toán
   const handleCheckout = () => {
     if (cart.length === 0) return;
     navigate("/order", { state: { cart } });
@@ -26,7 +23,6 @@ export default function CartView({ cart, setCart, customer }) {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* HEADER */}
       <header className="bg-indigo-600 text-white px-8 py-4 flex justify-between items-center">
         <h1
           className="text-2xl font-bold cursor-pointer"
@@ -43,9 +39,7 @@ export default function CartView({ cart, setCart, customer }) {
         </button>
       </header>
 
-      {/* MAIN */}
       <main className="flex-1 p-8 grid grid-cols-3 gap-6">
-        {/* DANH SÁCH SẢN PHẨM */}
         <section className="col-span-2">
           <h2 className="text-xl font-semibold mb-4 text-gray-700">
             Sản phẩm trong giỏ hàng
@@ -77,7 +71,6 @@ export default function CartView({ cart, setCart, customer }) {
                     </p>
                   </div>
 
-                  {/* NÚT XÓA */}
                   <button
                     onClick={() => handleRemove(item.productID)}
                     className="text-red-500 hover:text-red-700 text-sm"
@@ -90,7 +83,6 @@ export default function CartView({ cart, setCart, customer }) {
           )}
         </section>
 
-        {/* PANEL TỔNG TIỀN */}
         <aside className="bg-white rounded-xl shadow p-6 h-fit sticky top-6">
           <h2 className="text-lg font-bold text-gray-800 mb-4">
             Tổng thanh toán

@@ -26,13 +26,8 @@ export default function LoginView({ onLoginSuccess }) {
       if (!res.ok) {
         setErrorMsg(data.error || "Đăng nhập thất bại!");
       } else {
-        // ✅ Lưu vào sessionStorage thay vì localStorage
-        localStorage.setItem("customer", JSON.stringify(data.customer)); // ✅
-
-        // ✅ Callback thông báo App biết là đăng nhập thành công
+        localStorage.setItem("customer", JSON.stringify(data.customer));
         onLoginSuccess(data.customer);
-
-        // ✅ Điều hướng về trang chính
         navigate("/");
       }
     } catch (err) {

@@ -9,7 +9,6 @@ export default function AccountView({ customer, onLogout, setCustomer }) {
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  // ✅ Khi mở trang, nếu chưa có dữ liệu thì đọc từ localStorage và fetch từ server
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem("customer"));
     
@@ -35,12 +34,10 @@ export default function AccountView({ customer, onLogout, setCustomer }) {
     }
   }, [navigate, setCustomer]);
 
-  // ✏️ Khi người dùng nhập liệu
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // 💾 Lưu thay đổi
   const handleSave = async () => {
     if (!formData.customerID) {
       setErrorMsg("Không tìm thấy ID khách hàng để cập nhật!");
@@ -73,7 +70,6 @@ export default function AccountView({ customer, onLogout, setCustomer }) {
         throw new Error("Cập nhật thất bại hoặc server không trả dữ liệu hợp lệ!");
       }
 
-      // ✅ Cập nhật state và localStorage bằng bản ghi mới nhất
       setFormData(data);
       setCustomer(data);
       localStorage.setItem("customer", JSON.stringify(data));
@@ -86,7 +82,6 @@ export default function AccountView({ customer, onLogout, setCustomer }) {
     }
   };
 
-  // ⏪ Quay lại trang chính
   const handleBack = () => navigate("/");
 
   if (!formData) return null;
@@ -101,7 +96,6 @@ export default function AccountView({ customer, onLogout, setCustomer }) {
         {errorMsg && <p className="text-red-500 text-sm text-center mb-3">{errorMsg}</p>}
         {successMsg && <p className="text-green-600 text-sm text-center mb-3">{successMsg}</p>}
 
-        {/* Mã khách hàng (không cho sửa) */}
         <div className="mb-4">
           <label className="block text-gray-600 font-semibold mb-1">Mã khách hàng</label>
           <input
@@ -111,7 +105,6 @@ export default function AccountView({ customer, onLogout, setCustomer }) {
           />
         </div>
 
-        {/* Họ và tên */}
         <div className="mb-4">
           <label className="block text-gray-600 font-semibold mb-1">Họ và tên</label>
           <input
@@ -122,7 +115,6 @@ export default function AccountView({ customer, onLogout, setCustomer }) {
           />
         </div>
 
-        {/* Số điện thoại */}
         <div className="mb-4">
           <label className="block text-gray-600 font-semibold mb-1">Số điện thoại</label>
           <input
@@ -133,7 +125,6 @@ export default function AccountView({ customer, onLogout, setCustomer }) {
           />
         </div>
 
-        {/* Email */}
         <div className="mb-4">
           <label className="block text-gray-600 font-semibold mb-1">Email</label>
           <input
@@ -144,7 +135,6 @@ export default function AccountView({ customer, onLogout, setCustomer }) {
           />
         </div>
 
-        {/* Địa chỉ */}
         <div className="mb-4">
           <label className="block text-gray-600 font-semibold mb-1">Địa chỉ</label>
           <input
@@ -155,7 +145,6 @@ export default function AccountView({ customer, onLogout, setCustomer }) {
           />
         </div>
 
-        {/* Mã bưu điện */}
         <div className="mb-6">
           <label className="block text-gray-600 font-semibold mb-1">Mã bưu điện</label>
           <input
@@ -166,7 +155,6 @@ export default function AccountView({ customer, onLogout, setCustomer }) {
           />
         </div>
 
-        {/* Nút hành động */}
         <div className="flex justify-between items-center">
           <button
             onClick={handleBack}
@@ -183,7 +171,6 @@ export default function AccountView({ customer, onLogout, setCustomer }) {
           </button>
         </div>
 
-        {/* Đăng xuất */}
         <div className="text-center mt-6">
           <button
             onClick={() => onLogout(navigate)}

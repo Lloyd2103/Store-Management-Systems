@@ -15,11 +15,9 @@ import AccountView from "./pages/AccountView";
 import OrderHistory from "./pages/OrderHistory";
 
 export default function App() {
-  // ===== SESSION LOGIN STATE =====
   const [customer, setCustomer] = useState(null);
   const [cart, setCart] = useState([]);
 
-  // Khi app load lại (reload), lấy customer từ sessionStorage
   useEffect(() => {
     const savedCustomer = sessionStorage.getItem("customer");
     const savedCart = sessionStorage.getItem("cart");
@@ -28,7 +26,6 @@ export default function App() {
     if (savedCart) setCart(JSON.parse(savedCart));
   }, []);
 
-  // Lưu lại customer và cart vào sessionStorage mỗi khi thay đổi
   useEffect(() => {
     if (customer) {
       sessionStorage.setItem("customer", JSON.stringify(customer));
@@ -39,13 +36,11 @@ export default function App() {
     sessionStorage.setItem("cart", JSON.stringify(cart));
   }, [cart]);
 
-  // ===== LOGIN SUCCESS =====
   const handleLoginSuccess = (user) => {
     setCustomer(user);
     sessionStorage.setItem("customer", JSON.stringify(user));
   };
 
-  // ===== LOGOUT =====
   const handleLogout = () => {
     setCustomer(null);
     sessionStorage.clear();
@@ -56,7 +51,6 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        {/* LOGIN */}
         <Route
           path="/login"
           element={
@@ -68,10 +62,8 @@ export default function App() {
           }
         />
 
-        {/* REGISTER */}
         <Route path="/register" element={<RegisterView />} />
 
-        {/* HOME / PRODUCT LIST */}
         <Route
           path="/"
           element={
@@ -83,7 +75,6 @@ export default function App() {
           }
         />
 
-        {/* CART */}
         <Route
           path="/cart"
           element={
@@ -95,7 +86,6 @@ export default function App() {
           }
         />
 
-        {/* ORDER */}
         <Route
           path="/order"
           element={
@@ -107,7 +97,6 @@ export default function App() {
           }
         />
 
-        {/* ACCOUNT */}
         <Route
           path="/account"
           element={
@@ -123,7 +112,6 @@ export default function App() {
           }
         />
 
-        {/* ORDER HISTORY */}
         <Route
           path="/order-history"
           element={isLoggedIn ? <OrderHistory /> : <Navigate to="/login" />}

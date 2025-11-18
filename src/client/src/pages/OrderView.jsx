@@ -8,12 +8,10 @@ export default function OrderView({ customer, cart: cartFromProps, setCart }) {
 
   const { cart: cartFromNavigation, product } = location.state || {};
 
-  // ✅ Ưu tiên: Order từ Navigation → order 1 sản phẩm
   const cart =
     cartFromNavigation ||
     (product ? [{ ...product, quantity: 1 }] : cartFromProps);
 
-  // ✅ Tạo danh sách orderItems có qty chỉnh được
   const [orderItems, setOrderItems] = useState(
     cart.map((item) => ({
       ...item,
@@ -41,7 +39,6 @@ export default function OrderView({ customer, cart: cartFromProps, setCart }) {
   const paymentOptions = ["Cash", "BankTransfer", "Card", "Voucher"];
   const [paymentMethod, setPaymentMethod] = useState("");
 
-  // ✅ Xử lý đặt hàng
   const handleOrder = async () => {
     if (!paymentMethod) {
       alert("Vui lòng chọn phương thức thanh toán!");
@@ -92,9 +89,6 @@ export default function OrderView({ customer, cart: cartFromProps, setCart }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Checkout failed");
 
-      console.log("✅ Checkout:", data);
-
-      // ✅ Cập nhật giỏ hàng còn lại
       const updatedCart = cartFromProps
         .map((item) => {
           const ordered = orderItems.find(
@@ -139,7 +133,6 @@ export default function OrderView({ customer, cart: cartFromProps, setCart }) {
       <main className="flex-1 p-8 max-w-3xl mx-auto bg-white rounded-2xl shadow">
         <h2 className="text-xl font-semibold mb-6">Xác nhận đơn hàng</h2>
 
-        {/* ✅ Sản phẩm */}
         <div className="space-y-4 mb-6">
           {orderItems.map((item) => (
             <div key={item.productID} className="border rounded-xl p-4 flex justify-between items-center">
@@ -173,7 +166,6 @@ export default function OrderView({ customer, cart: cartFromProps, setCart }) {
           ))}
         </div>
 
-        {/* ✅ Thanh toán */}
         <h3 className="font-medium mb-2">Chọn phương thức thanh toán</h3>
         <div className="grid grid-cols-2 gap-3 mb-6">
           {paymentOptions.map((method) => (
@@ -189,7 +181,6 @@ export default function OrderView({ customer, cart: cartFromProps, setCart }) {
           ))}
         </div>
 
-        {/* ✅ Tổng */}
         <div className="flex justify-between">
           <p className="font-semibold text-lg">
             Tổng: <span className="text-orange-500">{totalPrice.toLocaleString()}₫</span>

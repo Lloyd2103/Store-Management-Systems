@@ -7,23 +7,19 @@ export default function OrderHistory() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Lấy thông tin người dùng từ localStorage
   const customer = JSON.parse(localStorage.getItem("customer"));
 
-  // ✅ Nếu chưa đăng nhập → quay về login
   useEffect(() => {
     if (!customer || !customer.customerID) {
       navigate("/login");
     }
   }, [customer, navigate]);
 
-  // ✅ Fetch danh sách đơn hàng
   useEffect(() => {
     if (!customer || !customer.customerID) return;
 
     const fetchOrders = async () => {
       try {
-        // ✅ Sửa lại API đúng
         const res = await fetch(`${API_BASE_URL}/orders/${customer.customerID}`);
         const data = await res.json();
 
@@ -33,7 +29,6 @@ export default function OrderHistory() {
           return;
         }
 
-        // ✅ Lấy danh sách sản phẩm cho từng đơn
         const ordersWithItems = await Promise.all(
           data.map(async (order) => {
             try {
@@ -72,7 +67,6 @@ export default function OrderHistory() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      {/* HEADER */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-indigo-600">📜 Lịch sử đơn hàng</h1>
         <button

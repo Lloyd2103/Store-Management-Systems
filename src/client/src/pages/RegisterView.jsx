@@ -20,7 +20,6 @@ export default function RegisterView({ onSwitchToLogin }) {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // Nếu onSwitchToLogin không có, dùng navigate để chuyển
   const switchToLogin = () => {
     if (typeof onSwitchToLogin === "function") {
       onSwitchToLogin();
@@ -42,21 +41,17 @@ export default function RegisterView({ onSwitchToLogin }) {
         body: JSON.stringify(formData),
       });
 
-      // đọc body trả về (await hợp lệ vì handleSubmit là async)
       const data = await res.json();
 
       if (!res.ok) {
-        // backend có thể trả { error: "..." } hoặc tương tự
         setErrorMsg(data.error || "Đăng ký thất bại!");
       } else {
-        // Nếu backend trả về customer hoặc customerID, bạn có thể log để kiểm tra
         if (data.customerID) {
           setSuccessMsg(`Đăng ký thành công! Mã khách hàng của bạn: ${data.customerID}`);
         } else {
           setSuccessMsg("Đăng ký thành công! Vui lòng đăng nhập.");
         }
 
-        // Chờ 1s rồi chuyển sang trang đăng nhập
         setTimeout(() => {
           switchToLogin();
         }, 1000);

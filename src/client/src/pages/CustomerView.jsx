@@ -9,12 +9,10 @@ export default function CustomerView({ cart, setCart }) {
   const [quantity, setQuantity] = useState(1);
   const navigate = useNavigate();
 
-  // ====== FILTERS ======
   const [filterBrand, setFilterBrand] = useState("");
   const [filterName, setFilterName] = useState("");
-  const [filterPrice, setFilterPrice] = useState(["", ""]); // from – to
+  const [filterPrice, setFilterPrice] = useState(["", ""]);
 
-  // 🔹 Load sản phẩm
   useEffect(() => {
     fetch(`${API_BASE_URL}/products`)
       .then((res) => res.json())
@@ -23,7 +21,6 @@ export default function CustomerView({ cart, setCart }) {
       });
   }, []);
 
-  // 🔹 Filter logic hoàn chỉnh
   const filteredProducts = products.filter((p) => {
     const nameMatch = p.productName
       .toLowerCase()
@@ -32,7 +29,6 @@ export default function CustomerView({ cart, setCart }) {
     const brandMatch =
       filterBrand === "" || p.productBrand === filterBrand;
 
-    // Giá
     const price = Number(p.MSRP);
     const min = filterPrice[0] === "" ? 0 : Number(filterPrice[0]);
     const max = filterPrice[1] === "" ? Infinity : Number(filterPrice[1]);
@@ -41,7 +37,6 @@ export default function CustomerView({ cart, setCart }) {
     return nameMatch && brandMatch && priceMatch;
   });
 
-  // 🔹 Mở popup chọn số lượng
   const openPopup = (product) => {
     setSelectedProduct(product);
     setQuantity(1);
@@ -49,7 +44,6 @@ export default function CustomerView({ cart, setCart }) {
 
   const closePopup = () => setSelectedProduct(null);
 
-  // 🔹 Thêm vào giỏ hàng
   const handleAddToCart = (product, qty) => {
     setCart((prev) => {
       const exist = prev.find((i) => i.productID === product.productID);
@@ -66,17 +60,14 @@ export default function CustomerView({ cart, setCart }) {
     closePopup();
   };
 
-  // 🔹 Đặt hàng ngay
   const handleDirectOrder = (product) => {
     navigate("/order", { state: { cart: [{ ...product, quantity: 1 }] } });
   };
 
-  // Danh sách thương hiệu
   const brandList = [...new Set(products.map((p) => p.productBrand))];
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* HEADER */}
       <header className="bg-indigo-600 shadow px-8 py-4 flex justify-between items-center">
         <h1
           onClick={() => navigate("/")}
@@ -85,7 +76,6 @@ export default function CustomerView({ cart, setCart }) {
           🛒 Cửa hàng đồ điện tử
         </h1>
 
-        {/* Ô tìm kiếm */}
         <div className="flex items-center bg-white rounded-xl px-4 py-2 w-96">
           <input
             type="text"
@@ -124,13 +114,10 @@ export default function CustomerView({ cart, setCart }) {
         </div>
       </header>
 
-      {/* MAIN */}
       <main className="flex p-8 gap-6">
-        {/* SIDEBAR */}
         <div className="w-64 bg-white rounded-2xl shadow p-5 h-fit sticky top-5">
           <h2 className="text-lg font-bold mb-4">🔎 Bộ lọc tìm kiếm</h2>
 
-          {/* Thương hiệu */}
           <div className="mb-6">
             <p className="font-semibold mb-2">Thương hiệu</p>
 
@@ -148,7 +135,6 @@ export default function CustomerView({ cart, setCart }) {
             </select>
           </div>
 
-          {/* Giá */}
           <div className="mb-6">
             <p className="font-semibold mb-2">Khoảng giá</p>
 
@@ -176,7 +162,6 @@ export default function CustomerView({ cart, setCart }) {
           </div>
         </div>
 
-        {/* PRODUCT LIST */}
         <div className="flex-1">
           <h2 className="text-xl font-semibold mb-4">Danh sách sản phẩm</h2>
 
@@ -219,7 +204,6 @@ export default function CustomerView({ cart, setCart }) {
         </div>
       </main>
 
-      {/* POPUP SỐ LƯỢNG */}
       {selectedProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white rounded-2xl shadow-xl p-6 w-96 relative">
