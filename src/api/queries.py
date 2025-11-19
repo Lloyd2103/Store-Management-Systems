@@ -143,7 +143,7 @@ SELECT_VENDOR_PRODUCTS = """
     ORDER BY s.supplyDate DESC
 """
 INSERT_VENDOR = "INSERT INTO tbl_vendor (vendorName, contactName, phone, email, address) VALUES (%s, %s, %s, %s, %s)"
-UPDATE_VENDOR = "UPDATE tbl_vendor SET vendorName=%s, contactName=%s, phone=%s, email=%s, address=%s WHERE vendorID=%s"
+UPDATE_VENDOR = "UPDATE tbl_vendor SET vendorName=%s, contactName=%s, phone=%s, address=%s WHERE vendorID=%s"
 DELETE_VENDOR = "DELETE FROM tbl_vendor WHERE vendorID = %s"
 
 # ===== INVENTORY =====

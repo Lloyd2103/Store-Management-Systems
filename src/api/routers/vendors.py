@@ -63,7 +63,7 @@ def update_vendor(id: int, payload: Vendor):
             payload.vendorName,
             payload.contactName,
             payload.phone,
-            payload.email,
+            
             payload.address,
             id
         ))

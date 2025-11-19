@@ -74,7 +74,8 @@ Port của frontend development server có thể được thay đổi trong file
 
 ```javascript
 server: {
-  port: 1721  // Thay đổi port tại đây
+   ip:192.168.80.70
+   port: 1721  // Thay đổi port tại đây
 }
 ```
 

@@ -131,7 +131,7 @@ const ActionButtons = ({ onEdit, onDelete, onView, activeTab }) => {
 
     return (
         <div className="flex gap-2">
-            {needsView && (
+            {needsView && onView && (
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
@@ -257,125 +257,8 @@ const DataTable = ({ data, onRowClick, onItemEdit, onItemDelete, selectedRows, o
     );
 };
 
-const OrderDetailsModal = ({ orderDetails, onClose, isLoading }) => {
-    if (isLoading) {
-        return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 z-50">
-                <div className="bg-white rounded p-4 w-full max-w-4xl shadow-xl">
-                    <LoadingSpinner />
-                </div>
-            </div>
-        );
-    }
-
-    if (!orderDetails || orderDetails.length === 0) {
-        return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 z-50">
-                <div className="bg-white rounded p-4 w-full max-w-4xl shadow-xl relative">
-                    <button onClick={onClose} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
-                        <X className="w-4 h-4" />
-                    </button>
-                    <h2 className="text-lg font-bold text-indigo-700 mb-3">Chi tiết Đơn hàng</h2>
-                    <div className="text-gray-500 text-center py-8">Không có chi tiết đơn hàng</div>
-                    <button onClick={onClose} className="w-full bg-indigo-600 text-white py-1.5 rounded text-sm mt-4">
-                        Đóng
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    const columns = Object.keys(orderDetails[0]);
-    const getDisplayName = (key) => {
-        const displayNames = {
-            requestID: 'Mã yêu cầu',
-            orderID: 'Mã đơn',
-            productID: 'Mã sản phẩm',
-            productName: 'Tên sản phẩm',
-            quantityOrdered: 'Số lượng',
-            priceEach: 'Giá mỗi sản phẩm',
-            productLine: 'Dòng sản phẩm',
-            productScale: 'Quy mô',
-            productBrand: 'Thương hiệu',
-            productDiscription: 'Mô tả',
-            warrantyPeriod: 'Thời gian bảo hành',
-        };
-        return displayNames[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-    };
-
-    // Tính tổng tiền
-    const totalAmount = orderDetails.reduce((sum, item) => {
-        const quantity = item.quantityOrdered || 0;
-        const price = item.priceEach || 0;
-        return sum + (quantity * price);
-    }, 0);
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 z-50">
-            <div className="bg-white rounded p-4 w-full max-w-6xl shadow-xl relative max-h-[90vh] overflow-hidden flex flex-col">
-                <button onClick={onClose} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 z-10">
-                    <X className="w-5 h-5" />
-                </button>
-                <h2 className="text-lg font-bold text-indigo-700 mb-3">Chi tiết Đơn hàng #{orderDetails[0]?.orderID}</h2>
-                <div className="flex-1 overflow-auto">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50 sticky top-0">
-                                <tr>
-                                    {columns.map((col) => (
-                                        <th key={col} className="px-3 py-2 text-left text-xs font-medium text-gray-500 tracking-wider">
-                                            {getDisplayName(col)}
-                                        </th>
-                                    ))}
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 tracking-wider">
-                                        Thành tiền
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {orderDetails.map((item, index) => {
-                                    const itemTotal = (item.quantityOrdered || 0) * (item.priceEach || 0);
-                                    return (
-                                        <tr key={index} className="hover:bg-gray-50">
-                                            {columns.map((col) => {
-                                                const value = item[col];
-                                                const displayValue = isCurrencyColumn(col) ? formatCurrency(value) : value;
-                                                return (
-                                                    <td key={col} className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
-                                                        {displayValue}
-                                                    </td>
-                                                );
-                                            })}
-                                            <td className="px-3 py-2 whitespace-nowrap text-xs font-semibold text-gray-900">
-                                                {formatCurrency(itemTotal)} đ
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-gray-200">
-                        <div className="flex justify-end">
-                            <div className="text-right">
-                                <div className="text-sm text-gray-600">Tổng cộng:</div>
-                                <div className="text-xl font-bold text-indigo-700">
-                                    {formatCurrency(totalAmount)} đ
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <button onClick={onClose} className="w-full bg-indigo-600 text-white py-2 rounded text-sm mt-4">
-                    Đóng
-                </button>
-            </div>
-        </div>
-    );
-};
-
-    // Relations Modal Component
-const RelationsModal = ({ data, type, onClose, onEdit, activeTab, selectedItem, user }) => {
+// Relations Modal Component
+const RelationsModal = ({ data, type, onClose, onEdit, onDelete, activeTab, selectedItem, user }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState(selectedItem || {});
 
@@ -395,6 +278,8 @@ const RelationsModal = ({ data, type, onClose, onEdit, activeTab, selectedItem, 
                 return 'Sản phẩm được cung cấp';
             case 'inventory-products':
                 return 'Sản phẩm trong kho';
+            case 'order-details':
+                return 'Chi tiết Đơn hàng';
             default:
                 return 'Quan hệ';
         }
@@ -518,179 +403,155 @@ const RelationsModal = ({ data, type, onClose, onEdit, activeTab, selectedItem, 
         );
     }
 
-    if (type === 'product-relations' && data.inventory && data.suppliers) {
+    // Generic table renderer for all relation types
+    const getTableConfig = (relationType) => {
+        const configs = {
+            'order-details': {
+                columns: [
+                    { key: 'orderID', label: 'Mã đơn', className: 'text-gray-900' },
+                    { key: 'productID', label: 'Mã sản phẩm', className: 'text-gray-900' },
+                    { key: 'productName', label: 'Tên sản phẩm', className: 'text-gray-900' },
+                    { key: 'discount', label: 'Giảm giá', className: 'text-gray-900' },
+                    { key: 'warrantyPeriod', label: 'Bảo hành', className: 'text-gray-900' },
+                    {
+                        key: 'quantityOrdered',
+                        label: 'Số lượng',
+                        className: 'text-gray-900',
+                        formatter: (value) => formatCurrency(value)
+                    },
+                    {
+                        key: 'priceEach',
+                        label: 'Giá mỗi sản phẩm',
+                        className: 'text-gray-900',
+                        formatter: (value) => `${formatCurrency(value)} đ`
+                    },
+                ],
+                extraColumn: {
+                    label: 'Thành tiền',
+                    calculate: (item) => {
+                        const total = (item.quantityOrdered || 0) * (item.priceEach || 0);
+                        return { value: total, display: `${formatCurrency(total)} đ`, className: 'font-semibold text-gray-900' };
+                    }
+                },
+                showTotal: true,
+                totalCalculator: (data) => data.reduce((sum, item) => sum + ((item.quantityOrdered || 0) * (item.priceEach || 0)), 0),
+                emptyMessage: 'Không có chi tiết đơn hàng'
+            },
+            'vendor-products': {
+                columns: [
+                    { key: 'productID', label: 'Mã SP', className: 'text-black' },
+                    { key: 'productName', label: 'Tên sản phẩm', className: 'text-black' },
+                    {
+                        key: 'quantitySupplier',
+                        label: 'Số lượng',
+                        className: 'text-black',
+                        formatter: formatCurrency
+                    },
+                    {
+                        key: 'supplyDate',
+                        label: 'Ngày cung cấp',
+                        className: 'text-black',
+                        formatter: (value) => value ? new Date(value).toLocaleDateString('vi-VN') : ''
+                    }
+                ],
+                emptyMessage: 'Không có dữ liệu'
+            },
+            'inventory-products': {
+                columns: [
+                    { key: 'productID', label: 'Mã SP', className: 'text-black' },
+                    { key: 'productName', label: 'Tên sản phẩm', className: 'text-black' },
+                    {
+                        key: 'quantityStore',
+                        label: 'Số lượng',
+                        className: 'text-black',
+                        formatter: formatCurrency
+                    },
+                    {
+                        key: 'storeDate',
+                        label: 'Ngày lưu',
+                        className: 'text-black',
+                        formatter: (value) => value ? new Date(value).toLocaleDateString('vi-VN') : ''
+                    },
+                    { key: 'roleStore', label: 'Loại', className: 'text-black' }
+                ],
+                emptyMessage: 'Không có dữ liệu'
+            }
+        };
+        return configs[relationType];
+    };
+
+    const renderGenericTable = () => {
+        const config = getTableConfig(type);
+        if (!config) return <div className="text-center text-gray-500 py-8">Không có dữ liệu</div>;
+
         return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 z-50">
-                <div className="bg-white rounded p-4 w-full max-w-4xl shadow-xl relative max-h-[90vh] overflow-hidden flex flex-col">
-                    <button onClick={onClose} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 z-10">
-                        <X className="w-5 h-5" />
-                    </button>
-                    <h2 className="text-lg font-bold text-indigo-700 mb-3">{getTitle()}</h2>
-
-                    <div className="flex-1 overflow-auto space-y-4">
-                        {/* Inventory Section */}
-                        {data.inventory.length > 0 && (
-                            <div>
-                                <h3 className="text-md font-semibold mb-2">Kho chứa sản phẩm</h3>
-                                <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200 text-xs">
-                                        <thead className="bg-gray-50">
-                                            <tr>
-                                                <th className="px-2 py-1 text-left">Mã kho</th>
-                                                <th className="px-2 py-1 text-left">Kho</th>
-                                                <th className="px-2 py-1 text-left">Số lượng</th>
-                                                <th className="px-2 py-1 text-left">Ngày lưu</th>
-                                                <th className="px-2 py-1 text-left">Loại</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
-                                            {data.inventory.map((item, index) => (
-                                                <tr key={index}>
-                                                    <td className="px-2 py-1">{item.inventoryID}</td>
-                                                    <td className="px-2 py-1">{item.warehouse}</td>
-                                                    <td className="px-2 py-1">{formatCurrency(item.stockQuantity)}</td>
-                                                    <td className="px-2 py-1">{item.storeDate ? new Date(item.storeDate).toLocaleDateString('vi-VN') : ''}</td>
-                                                    <td className="px-2 py-1">{item.roleStore}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Suppliers Section */}
-                        {data.suppliers.length > 0 && (
-                            <div>
-                                <h3 className="text-md font-semibold mb-2">Nhà cung cấp</h3>
-                                <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200 text-xs">
-                                        <thead className="bg-gray-50">
-                                            <tr>
-                                                <th className="px-2 py-1 text-left text-blue-600">Mã NCC</th>
-                                                <th className="px-2 py-1 text-left text-blue-600">Tên NCC</th>
-                                                <th className="px-2 py-1 text-left text-blue-600">Số lượng</th>
-                                                <th className="px-2 py-1 text-left text-blue-600">Ngày cung cấp</th>
-                                                <th className="px-2 py-1 text-left text-blue-600">Ghi chú</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
-                                            {data.suppliers.map((item, index) => (
-                                                <tr key={index}>
-                                                    <td className="px-2 py-1">{item.vendorID}</td>
-                                                    <td className="px-2 py-1">{item.vendorName}</td>
-                                                    <td className="px-2 py-1">{formatCurrency(item.quantitySupplier)}</td>
-                                                    <td className="px-2 py-1">{item.supplyDate ? new Date(item.supplyDate).toLocaleDateString('vi-VN') : ''}</td>
-                                                    <td className="px-2 py-1">{item.supplyNote || ''}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
-
-                        {data.inventory.length === 0 && data.suppliers.length === 0 && (
-                            <div className="text-center text-gray-500 py-8">Không có quan hệ nào</div>
-                        )}
+            <>
+                {data.length > 0 ? (
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50 sticky top-0">
+                                <tr>
+                                    {config.columns.map((col) => (
+                                        <th key={col.key} className={`px-3 py-2 text-left text-xs font-medium tracking-wider ${col.className.replace('text-black', 'text-gray-500')}`}>
+                                            {col.label}
+                                        </th>
+                                    ))}
+                                    {config.extraColumn && (
+                                        <th className={`px-3 py-2 text-left text-xs font-medium tracking-wider ${config.extraColumn.className || 'text-gray-500'}`}>
+                                            {config.extraColumn.label}
+                                        </th>
+                                    )}
+                                    <th className="px-3 py-2 text-left text-xs font-medium tracking-wider text-gray-500">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {data.map((item, index) => (
+                                    <tr key={index} className="hover:bg-gray-50">
+                                        {config.columns.map((col) => (
+                                            <td key={col.key} className={`px-3 py-2 whitespace-nowrap text-xs ${col.className}`}>
+                                                {col.formatter ? col.formatter(item[col.key]) : item[col.key]}
+                                            </td>
+                                        ))}
+                                        {config.extraColumn && (() => {
+                                            const extraData = config.extraColumn.calculate(item);
+                                            return (
+                                                <td className={`px-3 py-2 whitespace-nowrap text-xs ${extraData.className || 'text-gray-900'}`}>
+                                                    {extraData.display}
+                                                </td>
+                                            );
+                                        })()}
+                                        <td className="px-3 py-1 whitespace-nowrap text-xs text-gray-900">
+                                            <ActionButtons
+                                                onEdit={() => onEdit(item)}
+                                                onDelete={() => onDelete(item)}
+                                                activeTab={activeTab}
+                                            />
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
-
-                <div className="flex gap-2 mt-4">
-                    <button
-                        onClick={() => setIsEditing(true)}
-                        className="flex-1 bg-indigo-600 text-white py-2 rounded text-sm hover:bg-indigo-700"
-                    >
-                        Chỉnh sửa
-                    </button>
-                    <button
-                        onClick={onClose}
-                        className="flex-1 bg-gray-300 text-gray-700 py-2 rounded text-sm hover:bg-gray-400"
-                    >
-                        Đóng
-                    </button>
-                </div>
-                </div>
-            </div>
+                ) : (
+                    <div className="text-center text-gray-500 py-8">{config.emptyMessage}</div>
+                )}
+            </>
         );
-    }
+    };
 
-    // Vendor products or inventory products
+
+    const modalSize = type === 'order-details' ? 'w-full max-w-6xl' : 'w-full max-w-4xl';
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 z-50">
-            <div className="bg-white rounded p-4 w-full max-w-4xl shadow-xl relative max-h-[90vh] overflow-hidden flex flex-col">
-                <button onClick={onClose} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 z-10">
+            <div className={`bg-white rounded p-4 ${modalSize} shadow-xl relative max-h-[90vh] overflow-hidden flex flex-col`}>
+                <button onClick={onClose} className="absolute top-2 right-2 text-black hover:text-black z-10 bg-white p-2">
                     <X className="w-5 h-5" />
                 </button>
                 <h2 className="text-lg font-bold text-indigo-700 mb-3">{getTitle()}</h2>
 
                 <div className="flex-1 overflow-auto">
-                    {data.length > 0 ? (
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200 text-xs">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        {type === 'vendor-products' && (
-                                            <>
-                                                <th className="px-2 py-1 text-left text-blue-600">Mã SP</th>
-                                                <th className="px-2 py-1 text-left text-blue-600">Tên sản phẩm</th>
-                                                <th className="px-2 py-1 text-left text-blue-600">Số lượng</th>
-                                                <th className="px-2 py-1 text-left text-blue-600">Ngày cung cấp</th>
-                                            </>
-                                        )}
-                                        {type === 'inventory-products' && (
-                                            <>
-                                                <th className="px-2 py-1 text-left text-blue-600">Mã SP</th>
-                                                <th className="px-2 py-1 text-left text-blue-600">Tên sản phẩm</th>
-                                                <th className="px-2 py-1 text-left text-blue-600">Số lượng</th>
-                                                <th className="px-2 py-1 text-left text-blue-600">Ngày lưu</th>
-                                                <th className="px-2 py-1 text-left text-blue-600">Loại</th>
-                                            </>
-                                        )}
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {data.map((item, index) => (
-                                        <tr key={index}>
-                                            {type === 'vendor-products' && (
-                                                <>
-                                                    <td className="px-2 py-1 text-black">{item.productID}</td>
-                                                    <td className="px-2 py-1 text-black">{item.productName}</td>
-                                                    <td className="px-2 py-1 text-black">{formatCurrency(item.quantitySupplier)}</td>
-                                                    <td className="px-2 py-1 text-black">{item.supplyDate ? new Date(item.supplyDate).toLocaleDateString('vi-VN') : ''}</td>
-                                                </>
-                                            )}
-                                            {type === 'inventory-products' && (
-                                                <>
-                                                    <td className="px-2 py-1 text-black">{item.productID}</td>
-                                                    <td className="px-2 py-1 text-black">{item.productName}</td>
-                                                    <td className="px-2 py-1 text-black">{formatCurrency(item.quantityStore)}</td>
-                                                    <td className="px-2 py-1 text-black">{item.storeDate ? new Date(item.storeDate).toLocaleDateString('vi-VN') : ''}</td>
-                                                    <td className="px-2 py-1 text-black">{item.roleStore}</td>
-                                                </>
-                                            )}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    ) : (
-                        <div className="text-center text-gray-500 py-8">Không có dữ liệu</div>
-                    )}
-                </div>
-
-                <div className="flex gap-2 mt-4">
-                    <button
-                        onClick={() => setIsEditing(true)}
-                        className="flex-1 bg-indigo-600 text-white py-2 rounded text-sm hover:bg-indigo-700"
-                    >
-                        Chỉnh sửa
-                    </button>
-                    <button
-                        onClick={onClose}
-                        className="flex-1 bg-gray-300 text-gray-700 py-2 rounded text-sm hover:bg-gray-400"
-                    >
-                        Đóng
-                    </button>
+                    {renderGenericTable()}
                 </div>
             </div>
         </div>
@@ -748,7 +609,7 @@ const FormModal = ({ data, onSave, onCancel, mode = 'edit' }) => {
             transactionStatus: ['Pending', 'Completed', 'Failed', 'Refunded']
         };
         // special-case: position selection for staff accounts
-        if (key === 'position') return ['Manager', 'Sales', 'Inventory', ];
+        if (key === 'position') return ['Manager', 'Sales', 'Inventory',];
         return options[key] || [];
     };
 
@@ -784,7 +645,7 @@ const FormModal = ({ data, onSave, onCancel, mode = 'edit' }) => {
                                                 <option key={option} value={option}>{option}</option>
                                             ))}
                                         </select>
-                                    
+
                                     ) : (
                                         <input
                                             name={key}
@@ -818,9 +679,6 @@ export default function App() {
     const [modalMode, setModalMode] = useState('edit');
     const [selectedItem, setSelectedItem] = useState(null);
     const [selectedRows, setSelectedRows] = useState([]);
-    const [orderDetails, setOrderDetails] = useState([]);
-    const [showOrderDetails, setShowOrderDetails] = useState(false);
-    const [isLoadingOrderDetails, setIsLoadingOrderDetails] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
@@ -956,47 +814,27 @@ export default function App() {
         setFilterStatus('');
     }, [activeTab]);
 
-    const fetchOrderDetails = useCallback(async (orderID) => {
-        if (!user) return;
-
-        setIsLoadingOrderDetails(true);
-        setError(null);
-        try {
-            const response = await fetch(`${API_BASE_URL}/requests/${orderID}`, {
-                headers: {
-                    'Authorization': `Bearer ${user.token}`,
-                },
-            });
-
-            if (!response.ok) {
-                if (response.status === 401) {
-                    handleLogout();
-                    throw new Error('Phiên đăng nhập đã hết hạn');
-                }
-                throw new Error('Lỗi tải chi tiết đơn hàng');
-            }
-
-            const result = await response.json();
-            setOrderDetails(result);
-            setShowOrderDetails(true);
-        } catch (err) {
-            setError(err.message);
-            alert(err.message);
-        } finally {
-            setIsLoadingOrderDetails(false);
-        }
-    }, [user, handleLogout]);
-
     const handleRowClick = async (item) => {
         setSelectedItem(item); // Always set the clicked item for potential editing
-
         // Nếu đang ở tab đơn hàng, gọi API để lấy chi tiết đơn hàng
         if (activeTab === 'orders') {
-            const orderID = item.orderID;
-            if (orderID) {
-                fetchOrderDetails(orderID);
+            try {
+                const response = await fetch(`${API_BASE_URL}/requests/${item.orderID}`);
+                const detailsData = await response.json();
+                if (detailsData.length > 0) {
+                    setRelationsData(detailsData);
+                    setRelationsType('order-details');
+                    setShowRelationsModal(true);
+                } else {
+                    setModalMode('edit');
+                    setShowModal(true);
+                }
+            } catch (err) {
+                console.error('Error loading order details:', err);
+                setModalMode('edit');
+                setShowModal(true);
             }
-        
+
         } else if (activeTab === 'vendors') {
             // Hiển thị products được supply bởi vendor
             try {
@@ -1298,16 +1136,16 @@ export default function App() {
                             {/* Search and Filters */}
                             <div className="mb-3 flex flex-wrap gap-2">
                                 <div className="flex-1 min-w-[200px] ">
-                                        <div className="relative">
-                                            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                            <input
-                                                type="text"
-                                                placeholder="Tìm kiếm..."
-                                                value={searchTerm}
-                                                onChange={(e) => setSearchTerm(e.target.value)}
-                                                className="w pl-8 pr-3 py-2 border border-blue-900   rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-200 text-black"
-                                            />
-                                        </div>
+                                    <div className="relative">
+                                        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="Tìm kiếm..."
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="w pl-8 pr-3 py-2 border border-blue-900   rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-200 text-black"
+                                        />
+                                    </div>
                                 </div>
                                 {activeTab === 'products' && categories.length > 0 && (
                                     <select
@@ -1378,27 +1216,17 @@ export default function App() {
                         setRelationsData([]);
                         setRelationsType('');
                     }}
-                    onEdit={() => {
-                        // The selectedItem is already set by handleRowClick.
-                        // We can now open the edit modal for it.
-                        if (selectedItem) {
-                            setModalMode('edit');
-                            setShowModal(true);
-                        }
+                    onEdit={(item) => {
+                        setSelectedItem(item);
+                        setModalMode('edit');
+                        setShowModal(true);
                         setShowRelationsModal(false);
                     }}
+                    onDelete={handleItemDelete}
                     activeTab={activeTab}
                     selectedItem={selectedItem}
                     user={user}
                     refreshData={() => fetchData(activeTab)}
-                />
-            )}
-
-            {showOrderDetails && (
-                <OrderDetailsModal
-                    orderDetails={orderDetails}
-                    onClose={() => setShowOrderDetails(false)}
-                    isLoading={isLoadingOrderDetails}
                 />
             )}
         </div>
