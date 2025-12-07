@@ -6,7 +6,7 @@
 const config = {
     // Địa chỉ API backend (không có dấu / ở cuối)
     // Ví dụ: "http://localhost:6868" hoặc "http://192.168.2.1:6868"
-    API_BASE_URL: "http://192.168.2.2:6868",
+    API_BASE_URL: "http://192.168.2.50:6868",
 
     // Các endpoint API
     API_ENDPOINTS: {

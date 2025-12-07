@@ -18,7 +18,7 @@ def get_requests():
 @router.get("/requests/{id}")
 def get_request(id: int):
     try:
-        return fetchall_sql(queries.SELECT_REQUEST_BY_ID, (id,))
+        return fetchall_sql(queries.SELECT_PRODUCT_BY_ORDERID, (id,))
     except Exception as e:
         logging.error(f"Error in get_request: {e}")
         raise HTTPException(status_code=500, detail=str(e))

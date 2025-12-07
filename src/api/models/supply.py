@@ -7,4 +7,4 @@ class Supply(BaseModel):
     vendorID: int
     supplyDate: Optional[datetime.datetime] = None
     quantitySupplier: int
-    note: str
+    handledBy: Optional[str] = None

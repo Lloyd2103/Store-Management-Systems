@@ -1,3 +1,4 @@
+/* eslint-disable no-dupe-keys */
 import React, { useState, useEffect, useCallback } from 'react';
 import { Users, Package, ShoppingCart, Truck, ClipboardList, Package2, Loader2, Plus, X, BarChart3, Search, Filter, Edit, Trash2, Eye } from 'lucide-react';
 import LoginPage from './pages/LoginPage';
@@ -11,9 +12,9 @@ const TABS = {
     products: { label: 'Sản phẩm', icon: Package, endpoint: '/products' },
     orders: { label: 'Đơn hàng', icon: ShoppingCart, endpoint: '/orders' },
     payments: { label: 'Thanh toán', icon: Package2, endpoint: '/payments' },
-    staff: { label: 'Nhân viên', icon: ClipboardList, endpoint: '/staffs' },
+    staffs: { label: 'Nhân viên', icon: ClipboardList, endpoint: '/staffs' },
     vendors: { label: 'Nhà cung cấp', icon: Truck, endpoint: '/vendors' },
-    inventory: { label: 'Kho', icon: Package2, endpoint: '/inventories' },
+    inventories: { label: 'Kho', icon: Package2, endpoint: '/inventories' },
     reports: { label: 'Báo cáo', icon: BarChart3, endpoint: '/reports' },
 };
 
@@ -95,11 +96,11 @@ const getColumnDisplayName = (columnName) => {
 
         // Thanh toán
         paymentID: 'Mã TT',
-        paymentDate: 'Ngày thanh toán',
-        paymentAmount: 'Số tiền',
+        orderID: 'Mã đơn',
+        transactionAmount: 'Số tiền',
         paymentMethod: 'Phương thức',
-        transactionID: 'Mã giao dịch',
-        note: 'Ghi chú',
+        transactionDate: 'Ngày giao dịch',
+        transactionStatus: 'Trạng thái giao dịch',
 
         // Tồn kho
         inventoryID: 'Mã kho',
@@ -127,11 +128,11 @@ const getColumnDisplayName = (columnName) => {
 const ActionButtons = ({ onEdit, onDelete, onView, activeTab }) => {
     // For orders, vendors, inventory: show View, Edit, Delete
     // For others: show Edit, Delete
-    const needsView = ['orders', 'vendors', 'inventory'].includes(activeTab);
+    const needsView = ['orders', 'vendors', 'inventories'].includes(activeTab);
 
     return (
         <div className="flex gap-2">
-            {needsView && (
+            {needsView && onView && (
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
@@ -257,146 +258,107 @@ const DataTable = ({ data, onRowClick, onItemEdit, onItemDelete, selectedRows, o
     );
 };
 
-const OrderDetailsModal = ({ orderDetails, onClose, isLoading }) => {
-    if (isLoading) {
-        return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 z-50">
-                <div className="bg-white rounded p-4 w-full max-w-4xl shadow-xl">
-                    <LoadingSpinner />
-                </div>
-            </div>
-        );
-    }
-
-    if (!orderDetails || orderDetails.length === 0) {
-        return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 z-50">
-                <div className="bg-white rounded p-4 w-full max-w-4xl shadow-xl relative">
-                    <button onClick={onClose} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
-                        <X className="w-4 h-4" />
-                    </button>
-                    <h2 className="text-lg font-bold text-indigo-700 mb-3">Chi tiết Đơn hàng</h2>
-                    <div className="text-gray-500 text-center py-8">Không có chi tiết đơn hàng</div>
-                    <button onClick={onClose} className="w-full bg-indigo-600 text-white py-1.5 rounded text-sm mt-4">
-                        Đóng
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    const columns = Object.keys(orderDetails[0]);
-    const getDisplayName = (key) => {
-        const displayNames = {
-            requestID: 'Mã yêu cầu',
-            orderID: 'Mã đơn',
-            productID: 'Mã sản phẩm',
-            productName: 'Tên sản phẩm',
-            quantityOrdered: 'Số lượng',
-            priceEach: 'Giá mỗi sản phẩm',
-            productLine: 'Dòng sản phẩm',
-            productScale: 'Quy mô',
-            productBrand: 'Thương hiệu',
-            productDiscription: 'Mô tả',
-            warrantyPeriod: 'Thời gian bảo hành',
-        };
-        return displayNames[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-    };
-
-    // Tính tổng tiền
-    const totalAmount = orderDetails.reduce((sum, item) => {
-        const quantity = item.quantityOrdered || 0;
-        const price = item.priceEach || 0;
-        return sum + (quantity * price);
-    }, 0);
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 z-50">
-            <div className="bg-white rounded p-4 w-full max-w-6xl shadow-xl relative max-h-[90vh] overflow-hidden flex flex-col">
-                <button onClick={onClose} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 z-10">
-                    <X className="w-5 h-5" />
-                </button>
-                <h2 className="text-lg font-bold text-indigo-700 mb-3">Chi tiết Đơn hàng #{orderDetails[0]?.orderID}</h2>
-                <div className="flex-1 overflow-auto">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50 sticky top-0">
-                                <tr>
-                                    {columns.map((col) => (
-                                        <th key={col} className="px-3 py-2 text-left text-xs font-medium text-gray-500 tracking-wider">
-                                            {getDisplayName(col)}
-                                        </th>
-                                    ))}
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 tracking-wider">
-                                        Thành tiền
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {orderDetails.map((item, index) => {
-                                    const itemTotal = (item.quantityOrdered || 0) * (item.priceEach || 0);
-                                    return (
-                                        <tr key={index} className="hover:bg-gray-50">
-                                            {columns.map((col) => {
-                                                const value = item[col];
-                                                const displayValue = isCurrencyColumn(col) ? formatCurrency(value) : value;
-                                                return (
-                                                    <td key={col} className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
-                                                        {displayValue}
-                                                    </td>
-                                                );
-                                            })}
-                                            <td className="px-3 py-2 whitespace-nowrap text-xs font-semibold text-gray-900">
-                                                {formatCurrency(itemTotal)} đ
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-gray-200">
-                        <div className="flex justify-end">
-                            <div className="text-right">
-                                <div className="text-sm text-gray-600">Tổng cộng:</div>
-                                <div className="text-xl font-bold text-indigo-700">
-                                    {formatCurrency(totalAmount)} đ
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <button onClick={onClose} className="w-full bg-indigo-600 text-white py-2 rounded text-sm mt-4">
-                    Đóng
-                </button>
-            </div>
-        </div>
-    );
-};
-
-    // Relations Modal Component
-const RelationsModal = ({ data, type, onClose, onEdit, activeTab, selectedItem, user }) => {
+// Relations Modal Component
+const RelationsModal = ({ data, type, onClose, onEdit, onDelete, activeTab, selectedItem, user, refreshData }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState(selectedItem || {});
+    const [isCreating, setIsCreating] = useState(false);
+    const [createData, setCreateData] = useState({});
 
-    const formatCurrency = (value) => {
-        if (value === null || value === undefined) return '0';
-        return Number(value).toLocaleString('vi-VN');
-    };
+
 
     const getTitle = () => {
+        if (isCreating) {
+            return type === 'supplies' ? 'Thêm Supply mới' : 'Thêm Store mới';
+        }
         if (isEditing) {
             return activeTab === 'vendors' ? 'Chỉnh sửa Nhà cung cấp' : 'Chỉnh sửa Kho';
         }
         switch (type) {
-            case 'product-relations':
-                return 'Quan hệ Sản phẩm';
-            case 'vendor-products':
+            case 'supplies':
                 return 'Sản phẩm được cung cấp';
-            case 'inventory-products':
+            case 'stores':
                 return 'Sản phẩm trong kho';
+            case 'request':
+                return 'Chi tiết Đơn hàng';
             default:
                 return 'Quan hệ';
+        }
+    };
+
+    const getCreateSchema = () => {
+        if (type === 'supplies') {
+            return {
+                productID: '',
+                vendorID: selectedItem?.vendorID || '',
+                supplyDate: new Date().toISOString().split('T')[0],
+                quantitySupplier: '',
+                handledBy: user?.staffID || ''
+            };
+        }
+        if (type === 'stores') {
+            return {
+                productID: '',
+                inventoryID: selectedItem?.inventoryID || '',
+                storeDate: new Date().toISOString().split('T')[0],
+                quantityStore: '',
+                roleStore: ['Inbound', 'Outbound', 'Adjustment', 'Transfer_In', 'Transfer_Out', 'Return']
+            };
+        }
+        return {};
+    };
+
+    const handleCreateClick = () => {
+        setCreateData(getCreateSchema());
+        setIsCreating(true);
+    };
+
+    const handleCreateChange = (e) => {
+        const { name, value, type: inputType } = e.target;
+        let processedValue = value;
+        if (inputType === 'number') {
+            processedValue = value === '' ? '' : Number(value);
+        }
+        setCreateData({ ...createData, [name]: processedValue });
+    };
+
+    const handleSaveCreate = async () => {
+        try {
+            const endpoint = type === 'supplies'
+                ? `${API_BASE_URL}/supplies`
+                : `${API_BASE_URL}/stores`;
+
+            const payload = { ...createData };
+            // Convert numeric fields
+            Object.keys(payload).forEach(key => {
+                const k = key.toLowerCase();
+                if (k.includes('id') || k.includes('quantity')) {
+                    if (payload[key] !== '' && payload[key] !== null) {
+                        payload[key] = Number(payload[key]);
+                    }
+                }
+            });
+
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.token}`,
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || 'Lỗi khi tạo mới');
+            }
+
+            setIsCreating(false);
+            alert('Tạo mới thành công!');
+            if (refreshData) refreshData();
+            onClose();
+        } catch (err) {
+            alert('Lỗi: ' + err.message);
         }
     };
 
@@ -453,7 +415,7 @@ const RelationsModal = ({ data, type, onClose, onEdit, activeTab, selectedItem, 
             customerType: ['Individual', 'Corporate', 'Partner', 'Reseller'],
             loyalLevel: ['New', 'Bronze', 'Silver', 'Gold', 'Platinum'],
             inventoryStatus: ['Active', 'Inactive', 'Low Stock', 'Out of Stock'],
-            roleStore: ['Import', 'Export', 'Stocktaking', 'Manual', 'Initial', 'Update'],
+            
             vendorStatus: ['Active', 'Inactive', 'Pending', 'Blacklisted'],
             transactionStatus: ['Pending', 'Completed', 'Failed', 'Refunded']
         };
@@ -473,7 +435,7 @@ const RelationsModal = ({ data, type, onClose, onEdit, activeTab, selectedItem, 
                     <form onSubmit={(e) => { e.preventDefault(); handleSaveEdit(); }} className="space-y-2 max-h-[70vh] overflow-y-auto">
                         {Object.entries(editData)
                             .filter(([key]) => {
-                                const hiddenFields = ['lastedUpdate', 'orderDate', 'shippedDate', 'paymentDate'];
+                                const hiddenFields = ['lastedUpdate', 'orderDate', 'shippedDate'];
                                 return !hiddenFields.includes(key) && !key.toLowerCase().includes('id');
                             })
                             .map(([key]) => {
@@ -518,179 +480,187 @@ const RelationsModal = ({ data, type, onClose, onEdit, activeTab, selectedItem, 
         );
     }
 
-    if (type === 'product-relations' && data.inventory && data.suppliers) {
+    const getTableConfig = (relationType) => {
+        const configs = {
+            // 1. Cấu hình cho bảng Supplies (khi bấm vào Vendor)
+            'supplies': {
+                columns: [
+                    { key: 'productID', label: 'Mã sản phẩm', className: 'text-black' },
+                    { key: 'quantitySupplier', label: 'SL Cung cấp', className: 'text-black', formatter: formatCurrency },
+                    { key: 'supplyDate', label: 'Ngày cung cấp', className: 'text-black', formatter: (v) => v ? new Date(v).toLocaleDateString('vi-VN') : '' },
+                    { key: 'handledBy', label: 'Người phụ trách', className: 'text-black' }
+                ],
+                emptyMessage: 'Nhà cung cấp này chưa cung cấp sản phẩm nào'
+            },
+
+            // 2. Cấu hình cho bảng Requests (khi bấm vào Order)
+            'request': { // Lưu ý: modalType bên App truyền sang là 'request' (số ít)
+                columns: [
+                    { key: 'orderID', label: 'Mã đơn', className: 'text-black' },
+                    { key: 'productID', label: 'Mã sản phẩm', className: 'text-black' },
+                    { key: 'quantityOrdered', label: 'Số lượng Đặt', className: 'text-black', formatter: formatCurrency },
+                    { key: 'discount', label: 'Giảm giá', className: 'text-black' },
+                    { key: 'note', label: 'Ghi chú', className: 'text-black' }
+                ],
+                emptyMessage: 'Đơn hàng này chưa có yêu cầu chi tiết'
+            },
+
+            // 3. Cấu hình cho bảng Stores (khi bấm vào Inventory)
+            'stores': {
+                columns: [
+                    { key: 'productID', label: 'Mã sản phẩm', className: 'text-black' },
+                    { key: 'quantityStore', label: 'Số lượng', className: 'text-black', formatter: formatCurrency },
+                    { key: 'storeDate', label: 'Ngày nhập kho', className: 'text-black', formatter: (v) => v ? new Date(v).toLocaleDateString('vi-VN') : '' },
+                    { key: 'roleStore', label: 'Loại giao dịch', className: 'text-black' }
+                ],
+                emptyMessage: 'Kho này chưa có lịch sử lưu trữ'
+            },
+
+        };
+        return configs[relationType];
+    };
+
+    const renderGenericTable = () => {
+        const config = getTableConfig(type);
+        if (!config) return <div className="text-center text-gray-500 py-8">Không có dữ liệu</div>;
+
+        return (
+            <>
+                {data.length > 0 ? (
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50 sticky top-0">
+                                <tr>
+                                    {config.columns.map((col) => (
+                                        <th key={col.key} className={`px-3 py-2 text-left text-xs font-medium tracking-wider ${col.className.replace('text-black', 'text-gray-500')}`}>
+                                            {col.label}
+                                        </th>
+                                    ))}
+                                    {config.extraColumn && (
+                                        <th className={`px-3 py-2 text-left text-xs font-medium tracking-wider ${config.extraColumn.className || 'text-gray-500'}`}>
+                                            {config.extraColumn.label}
+                                        </th>
+                                    )}
+                                    <th className="px-3 py-2 text-left text-xs font-medium tracking-wider text-gray-500">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {data.map((item, index) => (
+                                    <tr key={index} className="hover:bg-gray-50">
+                                        {config.columns.map((col) => (
+                                            <td key={col.key} className={`px-3 py-2 whitespace-nowrap text-xs ${col.className}`}>
+                                                {col.formatter ? col.formatter(item[col.key]) : item[col.key]}
+                                            </td>
+                                        ))}
+                                        {config.extraColumn && (() => {
+                                            const extraData = config.extraColumn.calculate(item);
+                                            return (
+                                                <td className={`px-3 py-2 whitespace-nowrap text-xs ${extraData.className || 'text-gray-900'}`}>
+                                                    {extraData.display}
+                                                </td>
+                                            );
+                                        })()}
+                                        <td className="px-3 py-1 whitespace-nowrap text-xs text-gray-900">
+                                            <ActionButtons
+                                                onEdit={() => onEdit(item)}
+                                                onDelete={() => onDelete(item)}
+                                                activeTab={activeTab}
+                                            />
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <div className="text-center text-gray-500 py-8">{config.emptyMessage}</div>
+                )}
+            </>
+        );
+    };
+
+
+    const modalSize = type === 'order-details' ? 'w-full max-w-6xl' : 'w-full max-w-4xl';
+
+    // Create form for stores/supplies
+    if (isCreating) {
         return (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 z-50">
-                <div className="bg-white rounded p-4 w-full max-w-4xl shadow-xl relative max-h-[90vh] overflow-hidden flex flex-col">
-                    <button onClick={onClose} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 z-10">
-                        <X className="w-5 h-5" />
+                <div className="bg-white rounded p-4 w-full max-w-md shadow-xl relative max-h-[90vh] overflow-hidden">
+                    <button onClick={() => setIsCreating(false)} className="absolute top-2 right-2 text-gray-400 hover:text-red-600">
+                        <X className="w-4 h-4" />
                     </button>
                     <h2 className="text-lg font-bold text-indigo-700 mb-3">{getTitle()}</h2>
+                    <form onSubmit={(e) => { e.preventDefault(); handleSaveCreate(); }} className="space-y-2 max-h-[70vh] overflow-y-auto">
+                        {Object.entries(createData).map(([key]) => {
+                            const k = key.toLowerCase();
+                            const isReadOnly = k.includes('vendorid') || k.includes('inventoryid');
+                            const isSelect = key === 'roleStore';
+                            const inputType = k.includes('date') ? 'date' : (k.includes('id') || k.includes('quantity')) ? 'number' : 'text';
 
-                    <div className="flex-1 overflow-auto space-y-4">
-                        {/* Inventory Section */}
-                        {data.inventory.length > 0 && (
-                            <div>
-                                <h3 className="text-md font-semibold mb-2">Kho chứa sản phẩm</h3>
-                                <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200 text-xs">
-                                        <thead className="bg-gray-50">
-                                            <tr>
-                                                <th className="px-2 py-1 text-left">Mã kho</th>
-                                                <th className="px-2 py-1 text-left">Kho</th>
-                                                <th className="px-2 py-1 text-left">Số lượng</th>
-                                                <th className="px-2 py-1 text-left">Ngày lưu</th>
-                                                <th className="px-2 py-1 text-left">Loại</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
-                                            {data.inventory.map((item, index) => (
-                                                <tr key={index}>
-                                                    <td className="px-2 py-1">{item.inventoryID}</td>
-                                                    <td className="px-2 py-1">{item.warehouse}</td>
-                                                    <td className="px-2 py-1">{formatCurrency(item.stockQuantity)}</td>
-                                                    <td className="px-2 py-1">{item.storeDate ? new Date(item.storeDate).toLocaleDateString('vi-VN') : ''}</td>
-                                                    <td className="px-2 py-1">{item.roleStore}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                            return (
+                                <div key={key}>
+                                    <label className="block text-xs font-medium text-blue-600 mb-1">
+                                        {getColumnDisplayName(key)}
+                                    </label>
+                                    {isSelect ? (
+                                        <select
+                                            name={key}
+                                            value={createData[key] ?? ''}
+                                            onChange={handleCreateChange}
+                                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                        >
+                                            <option value="Inbound">Inbound</option>
+                                            <option value="Outbound">Outbound</option>
+                                            <option value="Adjustment">Adjustment</option>
+                                            <option value="Transfer_In">Transfer_In</option>
+                                            <option value="Transfer_Out">Transfer_Out</option>
+                                            <option value="Return">Return</option>
+                                        </select>
+                                    ) : (
+                                        <input
+                                            name={key}
+                                            type={inputType}
+                                            value={createData[key] ?? ''}
+                                            onChange={handleCreateChange}
+                                            readOnly={isReadOnly}
+                                            className={`w-full border border-gray-300 rounded px-2 py-1 text-sm ${isReadOnly ? 'bg-gray-100' : ''}`}
+                                            min={inputType === 'number' ? 0 : undefined}
+                                        />
+                                    )}
                                 </div>
-                            </div>
-                        )}
-
-                        {/* Suppliers Section */}
-                        {data.suppliers.length > 0 && (
-                            <div>
-                                <h3 className="text-md font-semibold mb-2">Nhà cung cấp</h3>
-                                <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200 text-xs">
-                                        <thead className="bg-gray-50">
-                                            <tr>
-                                                <th className="px-2 py-1 text-left text-blue-600">Mã NCC</th>
-                                                <th className="px-2 py-1 text-left text-blue-600">Tên NCC</th>
-                                                <th className="px-2 py-1 text-left text-blue-600">Số lượng</th>
-                                                <th className="px-2 py-1 text-left text-blue-600">Ngày cung cấp</th>
-                                                <th className="px-2 py-1 text-left text-blue-600">Ghi chú</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
-                                            {data.suppliers.map((item, index) => (
-                                                <tr key={index}>
-                                                    <td className="px-2 py-1">{item.vendorID}</td>
-                                                    <td className="px-2 py-1">{item.vendorName}</td>
-                                                    <td className="px-2 py-1">{formatCurrency(item.quantitySupplier)}</td>
-                                                    <td className="px-2 py-1">{item.supplyDate ? new Date(item.supplyDate).toLocaleDateString('vi-VN') : ''}</td>
-                                                    <td className="px-2 py-1">{item.supplyNote || ''}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
-
-                        {data.inventory.length === 0 && data.suppliers.length === 0 && (
-                            <div className="text-center text-gray-500 py-8">Không có quan hệ nào</div>
-                        )}
-                    </div>
-
-                <div className="flex gap-2 mt-4">
-                    <button
-                        onClick={() => setIsEditing(true)}
-                        className="flex-1 bg-indigo-600 text-white py-2 rounded text-sm hover:bg-indigo-700"
-                    >
-                        Chỉnh sửa
-                    </button>
-                    <button
-                        onClick={onClose}
-                        className="flex-1 bg-gray-300 text-gray-700 py-2 rounded text-sm hover:bg-gray-400"
-                    >
-                        Đóng
-                    </button>
-                </div>
+                            );
+                        })}
+                        <button type="submit" className="w-full bg-green-600 text-white py-1.5 rounded text-sm hover:bg-green-700">
+                            Tạo mới
+                        </button>
+                    </form>
                 </div>
             </div>
         );
     }
 
-    // Vendor products or inventory products
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 z-50">
-            <div className="bg-white rounded p-4 w-full max-w-4xl shadow-xl relative max-h-[90vh] overflow-hidden flex flex-col">
-                <button onClick={onClose} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 z-10">
+            <div className={`bg-white rounded p-4 ${modalSize} shadow-xl relative max-h-[90vh] overflow-hidden flex flex-col`}>
+                <button onClick={onClose} className="absolute top-2 right-2 text-black hover:text-black z-10 bg-white p-2">
                     <X className="w-5 h-5" />
                 </button>
-                <h2 className="text-lg font-bold text-indigo-700 mb-3">{getTitle()}</h2>
-
-                <div className="flex-1 overflow-auto">
-                    {data.length > 0 ? (
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200 text-xs">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        {type === 'vendor-products' && (
-                                            <>
-                                                <th className="px-2 py-1 text-left text-blue-600">Mã SP</th>
-                                                <th className="px-2 py-1 text-left text-blue-600">Tên sản phẩm</th>
-                                                <th className="px-2 py-1 text-left text-blue-600">Số lượng</th>
-                                                <th className="px-2 py-1 text-left text-blue-600">Ngày cung cấp</th>
-                                            </>
-                                        )}
-                                        {type === 'inventory-products' && (
-                                            <>
-                                                <th className="px-2 py-1 text-left text-blue-600">Mã SP</th>
-                                                <th className="px-2 py-1 text-left text-blue-600">Tên sản phẩm</th>
-                                                <th className="px-2 py-1 text-left text-blue-600">Số lượng</th>
-                                                <th className="px-2 py-1 text-left text-blue-600">Ngày lưu</th>
-                                                <th className="px-2 py-1 text-left text-blue-600">Loại</th>
-                                            </>
-                                        )}
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {data.map((item, index) => (
-                                        <tr key={index}>
-                                            {type === 'vendor-products' && (
-                                                <>
-                                                    <td className="px-2 py-1 text-black">{item.productID}</td>
-                                                    <td className="px-2 py-1 text-black">{item.productName}</td>
-                                                    <td className="px-2 py-1 text-black">{formatCurrency(item.quantitySupplier)}</td>
-                                                    <td className="px-2 py-1 text-black">{item.supplyDate ? new Date(item.supplyDate).toLocaleDateString('vi-VN') : ''}</td>
-                                                </>
-                                            )}
-                                            {type === 'inventory-products' && (
-                                                <>
-                                                    <td className="px-2 py-1 text-black">{item.productID}</td>
-                                                    <td className="px-2 py-1 text-black">{item.productName}</td>
-                                                    <td className="px-2 py-1 text-black">{formatCurrency(item.quantityStore)}</td>
-                                                    <td className="px-2 py-1 text-black">{item.storeDate ? new Date(item.storeDate).toLocaleDateString('vi-VN') : ''}</td>
-                                                    <td className="px-2 py-1 text-black">{item.roleStore}</td>
-                                                </>
-                                            )}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    ) : (
-                        <div className="text-center text-gray-500 py-8">Không có dữ liệu</div>
+                <div className="flex justify-between items-center mb-3">
+                    <h2 className="text-lg font-bold text-indigo-700">{getTitle()}</h2>
+                    {(type === 'supplies' || type === 'stores') && (
+                        <button
+                            onClick={handleCreateClick}
+                            className="flex items-center bg-green-500 text-white px-3 py-1.5 rounded shadow-md hover:bg-green-600 transition duration-150 text-sm mr-8"
+                        >
+                            <Plus className="w-4 h-4 mr-1" />
+                            Thêm {type === 'supplies' ? 'Supply' : 'Store'}
+                        </button>
                     )}
                 </div>
 
-                <div className="flex gap-2 mt-4">
-                    <button
-                        onClick={() => setIsEditing(true)}
-                        className="flex-1 bg-indigo-600 text-white py-2 rounded text-sm hover:bg-indigo-700"
-                    >
-                        Chỉnh sửa
-                    </button>
-                    <button
-                        onClick={onClose}
-                        className="flex-1 bg-gray-300 text-gray-700 py-2 rounded text-sm hover:bg-gray-400"
-                    >
-                        Đóng
-                    </button>
+                <div className="flex-1 overflow-auto">
+                    {renderGenericTable()}
                 </div>
             </div>
         </div>
@@ -706,7 +676,7 @@ const FormModal = ({ data, onSave, onCancel, mode = 'edit' }) => {
 
         // Handle special input types
         if (type === 'number') {
-            processedValue = value === '' ? '' : Number(value);
+            processedValue = value === '' ? null : Number(value);
         }
 
         setFormData({ ...formData, [name]: processedValue });
@@ -728,6 +698,7 @@ const FormModal = ({ data, onSave, onCancel, mode = 'edit' }) => {
         if (k.includes('date')) return 'date';
         if (k.includes('point') || k.includes('quantity') || k.includes('warranty')) return 'number';
         if (k.includes('price') || k.includes('amount') || k.includes('cost') || k.includes('salary')) return 'number';
+        if (k.toLowerCase().endsWith('id')) return 'number';
         if (k === 'position') return 'select';
         if (k.includes('status') || k.includes('method') || k.includes('type')) return 'select';
         return 'text';
@@ -743,12 +714,13 @@ const FormModal = ({ data, onSave, onCancel, mode = 'edit' }) => {
             customerType: ['Individual', 'Corporate', 'Partner', 'Reseller'],
             loyalLevel: ['New', 'Bronze', 'Silver', 'Gold', 'Platinum'],
             inventoryStatus: ['Active', 'Inactive', 'Low Stock', 'Out of Stock'],
-            roleStore: ['Import', 'Export', 'Stocktaking', 'Manual', 'Initial', 'Update'],
+            
             vendorStatus: ['Active', 'Inactive', 'Pending', 'Blacklisted'],
-            transactionStatus: ['Pending', 'Completed', 'Failed', 'Refunded']
+            transactionStatus: ['Pending', 'Completed', 'Failed', 'Refunded'],
+
         };
         // special-case: position selection for staff accounts
-        if (key === 'position') return ['Manager', 'Sales', 'Inventory', ];
+        if (key === 'position') return ['Manager', 'Sales', 'Inventory',];
         return options[key] || [];
     };
 
@@ -784,7 +756,7 @@ const FormModal = ({ data, onSave, onCancel, mode = 'edit' }) => {
                                                 <option key={option} value={option}>{option}</option>
                                             ))}
                                         </select>
-                                    
+
                                     ) : (
                                         <input
                                             name={key}
@@ -818,24 +790,38 @@ export default function App() {
     const [modalMode, setModalMode] = useState('edit');
     const [selectedItem, setSelectedItem] = useState(null);
     const [selectedRows, setSelectedRows] = useState([]);
-    const [orderDetails, setOrderDetails] = useState([]);
-    const [showOrderDetails, setShowOrderDetails] = useState(false);
-    const [isLoadingOrderDetails, setIsLoadingOrderDetails] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
-    const [categories, setCategories] = useState([]);
+
     const [showRelationsModal, setShowRelationsModal] = useState(false);
-    const [relationsType, setRelationsType] = useState(''); // 'product-inventory', 'product-suppliers', 'vendor-products', 'inventory-products'
+    const [relationsType, setRelationsType] = useState('');
     const [relationsData, setRelationsData] = useState([]);
-    const [products, setProducts] = useState([]);
-    const [inventories, setInventories] = useState([]);
-    const [vendors, setVendors] = useState([]);
+
+    // --- NEW: State để lưu chính xác loại Resource đang thao tác ---
+    const [currentResourceType, setCurrentResourceType] = useState('');
+
+    const RESOURCE_CONFIG = {
+        // ... Các bảng cũ giữ nguyên ...
+        customers: { endpoint: '/customers', idKey: 'customerID' },
+        products: { endpoint: '/products', idKey: 'productID' },
+        orders: { endpoint: '/orders', idKey: 'orderID' },
+        staffs: { endpoint: '/staffs', idKey: 'staffID' },
+        inventories: { endpoint: '/inventories', idKey: 'inventoryID' },
+        payments: { endpoint: '/payments', idKey: 'paymentID' },
+        vendors: { endpoint: '/vendors', idKey: 'vendorID' },
+
+        // --- SỬA LẠI ĐOẠN NÀY ---
+        // Đổi 'idKeys' thành 'idKey'
+        supplies: { endpoint: '/supplies', idKey: 'productID' },
+        requests: { endpoint: '/requests', idKey: 'productID' },
+        stores: { endpoint: '/stores', idKey: 'productID' },
+    };
 
     const handleLogin = useCallback((userData) => {
         setUser(userData);
         localStorage.setItem('user', JSON.stringify(userData));
-        setActiveTab('customers'); // Reset về tab mặc định sau khi đăng nhập
+        setActiveTab('customers');
     }, []);
 
     const handleLogout = useCallback(() => {
@@ -844,7 +830,6 @@ export default function App() {
         setActiveTab('customers');
     }, []);
 
-    // Khôi phục trạng thái đăng nhập từ localStorage
     useEffect(() => {
         const savedUser = localStorage.getItem('user');
         if (savedUser) {
@@ -858,43 +843,9 @@ export default function App() {
         }
     }, []);
 
-    // Load categories
-    useEffect(() => {
-        if (activeTab === 'products') {
-            fetch(`${API_BASE_URL}${config.API_ENDPOINTS.CATEGORIES}`)
-                .then(res => res.json())
-                .then(data => setCategories(data.map(c => c.categoryName)))
-                .catch(err => console.error('Error loading categories:', err));
-        }
-    }, [activeTab]);
 
-    // Load products, inventories, vendors for forms
-    useEffect(() => {
-        if (user && (activeTab === 'inventory' || activeTab === 'products' || activeTab === 'vendors')) {
-            // Load products
-            fetch(`${API_BASE_URL}${config.API_ENDPOINTS.PRODUCTS}`)
-                .then(res => res.json())
-                .then(data => setProducts(data))
-                .catch(err => console.error('Error loading products:', err));
-
-            // Load inventories
-            fetch(`${API_BASE_URL}${config.API_ENDPOINTS.INVENTORIES}`)
-                .then(res => res.json())
-                .then(data => setInventories(data))
-                .catch(err => console.error('Error loading inventories:', err));
-
-            // Load vendors
-            fetch(`${API_BASE_URL}${config.API_ENDPOINTS.VENDORS}`)
-                .then(res => res.json())
-                .then(data => setVendors(data))
-                .catch(err => console.error('Error loading vendors:', err));
-        }
-    }, [activeTab, user]);
-
-    // Xử lý load dữ liệu
     const fetchData = useCallback(async (tabKey, search = '', category = '', status = '') => {
         if (!user || !tabKey) return;
-
         const tabInfo = TABS[tabKey];
         if (!tabInfo) return;
 
@@ -902,13 +853,11 @@ export default function App() {
         setError(null);
 
         try {
-            // Kiểm tra quyền truy cập cho tab hiện tại
             const permissions = POSITION_PERMISSIONS[user.position]?.[tabKey];
             if (!permissions || !permissions.includes('view')) {
                 throw new Error('Bạn không có quyền truy cập mục này');
             }
 
-            // Xây dựng URL với query parameters
             const params = new URLSearchParams();
             if (search) params.append('search', search);
             if (category && tabKey === 'products') params.append('category', category);
@@ -917,9 +866,7 @@ export default function App() {
             const url = `${API_BASE_URL}${tabInfo.endpoint}${params.toString() ? '?' + params.toString() : ''}`;
 
             const response = await fetch(url, {
-                headers: {
-                    'Authorization': `Bearer ${user.token}`,
-                },
+                headers: { 'Authorization': `Bearer ${user.token}` },
             });
 
             if (!response.ok) {
@@ -934,193 +881,39 @@ export default function App() {
             setData(result);
         } catch (err) {
             setError(err.message);
-            if (err.message === 'Phiên đăng nhập đã hết hạn') {
-                handleLogout();
-            }
+            if (err.message === 'Phiên đăng nhập đã hết hạn') handleLogout();
         } finally {
             setIsLoading(false);
         }
     }, [user, handleLogout]);
 
-    // Effect để load dữ liệu khi tab thay đổi hoặc sau khi đăng nhập
     useEffect(() => {
         if (user && activeTab && activeTab !== 'reports') {
             fetchData(activeTab, searchTerm, filterCategory, filterStatus);
         }
     }, [activeTab, fetchData, user, searchTerm, filterCategory, filterStatus]);
 
-    // Reset filters khi đổi tab
     useEffect(() => {
         setSearchTerm('');
         setFilterCategory('');
         setFilterStatus('');
     }, [activeTab]);
 
-    const fetchOrderDetails = useCallback(async (orderID) => {
-        if (!user) return;
-
-        setIsLoadingOrderDetails(true);
-        setError(null);
-        try {
-            const response = await fetch(`${API_BASE_URL}/requests/${orderID}`, {
-                headers: {
-                    'Authorization': `Bearer ${user.token}`,
-                },
-            });
-
-            if (!response.ok) {
-                if (response.status === 401) {
-                    handleLogout();
-                    throw new Error('Phiên đăng nhập đã hết hạn');
-                }
-                throw new Error('Lỗi tải chi tiết đơn hàng');
-            }
-
-            const result = await response.json();
-            setOrderDetails(result);
-            setShowOrderDetails(true);
-        } catch (err) {
-            setError(err.message);
-            alert(err.message);
-        } finally {
-            setIsLoadingOrderDetails(false);
-        }
-    }, [user, handleLogout]);
-
-    const handleRowClick = async (item) => {
-        setSelectedItem(item); // Always set the clicked item for potential editing
-
-        // Nếu đang ở tab đơn hàng, gọi API để lấy chi tiết đơn hàng
-        if (activeTab === 'orders') {
-            const orderID = item.orderID;
-            if (orderID) {
-                fetchOrderDetails(orderID);
-            }
-        
-        } else if (activeTab === 'vendors') {
-            // Hiển thị products được supply bởi vendor
-            try {
-                const response = await fetch(`${API_BASE_URL}/vendors/${item.vendorID}/products`);
-                const productsData = await response.json();
-
-                if (productsData.length > 0) {
-                    setRelationsData(productsData);
-                    setRelationsType('vendor-products');
-                    setShowRelationsModal(true);
-                } else {
-                    setModalMode('edit');
-                    setShowModal(true);
-                }
-            } catch (err) {
-                console.error('Error loading vendor products:', err);
-                setModalMode('edit');
-                setShowModal(true);
-            }
-        } else if (activeTab === 'inventory') {
-            // Hiển thị products được store trong inventory
-            try {
-                const response = await fetch(`${API_BASE_URL}/stores/inventory/${item.inventoryID}`);
-                const storesData = await response.json();
-
-                if (storesData.length > 0) {
-                    setRelationsData(storesData);
-                    setRelationsType('inventory-products');
-                    setShowRelationsModal(true);
-                } else {
-                    setModalMode('edit');
-                    setShowModal(true);
-                }
-            } catch (err) {
-                console.error('Error loading inventory products:', err);
-                setModalMode('edit');
-                setShowModal(true);
-            }
-        } else {
-            // Các tab khác giữ nguyên hành vi cũ
-            setModalMode('edit');
-            setShowModal(true);
-        }
-    };
-
     const getDefaultSchema = (tabKey) => {
+        // ... (Giữ nguyên logic getDefaultSchema cũ của bạn) ...
         const schemas = {
-            customers: {
-                customerID: '',
-                customerName: '',
-                customerType: 'Individual',
-                phone: '',
-                email: '',
-                address: '',
-                postalCode: '',
-                loyalLevel: 'New',
-                loyalPoint: 0
-            },
-            products: {
-                productID: '',
-                productName: '',
-                price: '',
-                productLine: '',
-                productScale: '',
-                productBrand: '',
-                productDescription: ''
-            },
-            payments: {
-                paymentID: '',
-                orderID: '',
-                paymentDate: new Date().toISOString().split('T')[0],
-                paymentAmount: '',
-                paymentMethod: '',
-                paymentStatus: 'Pending',
-                transactionID: '',
-                customerID: '',
-                note: ''
-            },
-            orders: {
-                orderID: '',
-                orderDate: new Date().toISOString().split('T')[0],
-                totalAmount: '',
-                orderStatus: 'Pending',
-                paymentStatus: 'Unpaid',
-                pickupMethod: '',
-                customerID: '',
-                staffID: ''
-            },
-            staff: {
-                staffID: '',
-                staffName: '',
-                position: '',
-                password: '',
-                phone: '',
-                email: '',
-                address: '',
-                managerID: '',
-                salary: ''
-            },
-            inventory: {
-                inventoryID: '',
-                warehouse: '',
-                productID: '',
-                maxStockLevel: '',
-                stockQuantity: '',
-                unitCost: '',
-                inventoryNote: '',
-                inventoryStatus: 'Active'
-            },
-            vendors: {
-                vendorID: '',
-                vendorName: '',
-                contactName: '',
-                phone: '',
-                email: '',
-                address: '',
-                vendorType: '',
-                paymentTerms: '',
-                vendorStatus: 'Active'
-            }
+            customers: { customerID: '', customerName: '', customerType: 'Individual', phone: '', email: '', address: '', postalCode: '', loyalLevel: 'New', loyalPoint: 0 },
+            products: { productID: '', productName: '', price: '', productLine: '', productScale: '', productBrand: '', productDescription: '' },
+            payments: { paymentID: '', orderID: '', paymentDate: new Date().toISOString().split('T')[0], paymentAmount: '', paymentMethod: '', paymentStatus: 'Pending', transactionID: '', customerID: '', note: '' },
+            orders: { orderID: '', orderDate: new Date().toISOString().split('T')[0], totalAmount: '', orderStatus: 'Pending', paymentStatus: 'Unpaid', pickupMethod: '', customerID: '', staffID: '' },
+            staffs: { staffID: '', staffName: '', position: '', password: '', phone: '', email: '', address: '', managerID: '', salary: '' },
+            inventories: { inventoryID: '', warehouse: '', productID: '', maxStockLevel: '', stockQuantity: '', unitCost: '', inventoryNote: '', inventoryStatus: 'Active' },
+            vendors: { vendorID: '', vendorName: '', contactName: '', phone: '', email: '', address: '', vendorType: '', paymentTerms: '', vendorStatus: 'Active' }
         };
-        return schemas[tabKey] || { name: '', description: '' };
+        return schemas[tabKey] || {};
     };
 
+    // --- UPDATE: handleCreate (Thêm logic set Resource Type) ---
     const handleCreate = () => {
         const permissions = POSITION_PERMISSIONS[user.position]?.[activeTab];
         if (!permissions || !permissions.includes('create')) {
@@ -1131,46 +924,187 @@ export default function App() {
         const schema = data.length > 0 ?
             Object.keys(data[0]).reduce((acc, key) => ({ ...acc, [key]: '' }), {}) :
             getDefaultSchema(activeTab);
+
         setSelectedItem(schema);
         setModalMode('create');
+
+        // QUAN TRỌNG: Đang tạo mới cho Tab nào thì set type là Tab đó
+        setCurrentResourceType(activeTab);
+
         setShowModal(true);
     };
 
+    // --- UPDATE: handleItemEdit (Thêm logic set Resource Type) ---
+    const handleItemEdit = useCallback((item) => {
+        setSelectedItem(item);
+        setModalMode('edit');
+
+        // QUAN TRỌNG: Đang sửa item của Tab nào thì set type là Tab đó
+        setCurrentResourceType(activeTab);
+
+        setShowModal(true);
+    }, [activeTab]);
+
+    // --- UPDATE: handleRowClick (Logic quan trọng nhất) ---
+    const handleRowClick = async (item) => {
+        setSelectedItem(item);
+
+        const RELATION_CONFIG = {
+            orders: {
+                getEndpoint: (row) => `/requests/${row.orderID}`,
+                resourceName: 'requests',
+                modalType: 'request'
+            },
+            vendors: {
+                getEndpoint: (row) => `/supplies/${row.vendorID}`,
+                resourceName: 'supplies',
+                modalType: 'supplies'
+            },
+            inventories: { // Lưu ý tên tab là 'inventory' hay 'inventories' trong code của bạn
+                getEndpoint: (row) => `/stores/${row.inventoryID}`,
+                resourceName: 'stores',
+                modalType: 'stores'
+            },
+            // Map thêm key 'inventory' nếu activeTab của bạn là số ít
+
+        };
+
+        const config = RELATION_CONFIG[activeTab];
+
+        if (config) {
+            try {
+                // QUAN TRỌNG: Đánh dấu là đang làm việc với BẢNG CON
+                setCurrentResourceType(config.resourceName);
+
+                const endpoint = `${API_BASE_URL}${config.getEndpoint(item)}`;
+                const response = await fetch(endpoint);
+
+                if (!response.ok) throw new Error('Lỗi tải dữ liệu chi tiết');
+
+                const childData = await response.json();
+
+                // Gắn thêm _resource để dự phòng, nhưng logic chính sẽ dùng currentResourceType
+                setRelationsData(childData.map(d => ({ ...d, _resource: config.resourceName })));
+                setRelationsType(config.modalType);
+                setShowRelationsModal(true);
+
+            } catch (err) {
+                console.error(`Error loading details for ${activeTab}:`, err);
+
+                // Nếu lỗi API con, fallback về sửa bảng CHA
+                setCurrentResourceType(activeTab);
+                setModalMode('edit');
+                setShowModal(true);
+            }
+        }
+        else {
+            // Không phải bảng có quan hệ -> Sửa bảng CHA
+            setCurrentResourceType(activeTab);
+            setModalMode('edit');
+            setShowModal(true);
+        }
+    };
+
     const handleSave = async (formData) => {
+        console.log("DEBUG handleSave - Config Type:", currentResourceType || activeTab);
+
         try {
+            // 1. Kiểm tra quyền hạn
             const permissions = POSITION_PERMISSIONS[user.position]?.[activeTab];
             const action = modalMode === 'edit' ? 'edit' : 'create';
             if (!permissions || !permissions.includes(action)) {
                 throw new Error(`Bạn không có quyền ${action === 'edit' ? 'chỉnh sửa' : 'thêm mới'} dữ liệu`);
             }
 
-            const isEdit = modalMode === 'edit';
-            const endpoint = isEdit
-                ? `${API_BASE_URL}${TABS[activeTab].endpoint}/${formData[Object.keys(formData)[0]]}`
-                : `${API_BASE_URL}${TABS[activeTab].endpoint}`;
+            // 2. Lấy cấu hình
+            const typeKey = currentResourceType || activeTab;
+            const config = RESOURCE_CONFIG[typeKey];
 
+            if (!config) {
+                throw new Error(`Lỗi cấu hình: Không tìm thấy config cho resource "${typeKey}"`);
+            }
+
+            // --- XỬ LÝ DỮ LIỆU (FIX LỖI 422) ---
+            // Tạo bản sao để xử lý dữ liệu trước khi gửi
+            const payload = { ...formData };
+
+            // Tự động chuyển đổi các trường số sang Number để Backend không báo lỗi 422
+            Object.keys(payload).forEach(key => {
+                const k = key.toLowerCase();
+                // Danh sách các từ khóa thường là số
+                if (k.includes('id') || k.includes('price') || k.includes('cost') || k.includes('amount') || k.includes('quantity') || k.includes('stock') || k.includes('point')) {
+                    if (payload[key] !== '' && payload[key] !== null) {
+                        payload[key] = Number(payload[key]);
+                    }
+                }
+            });
+
+            // 3. Tạo Endpoint
+            const isEdit = modalMode === 'edit';
+            let endpoint = `${API_BASE_URL}${config.endpoint}`;
+
+            if (isEdit) {
+                // Ưu tiên 1: Dùng idKey (Single Key) -> Tạo URL dạng /resource/ID
+                if (config.idKey) {
+                    // Tìm key ID trong payload (bất kể hoa thường)
+                    const actualIdKey = Object.keys(payload).find(k => k.toLowerCase() === config.idKey.toLowerCase());
+                    const recordID = actualIdKey ? payload[actualIdKey] : null;
+
+                    if (recordID) {
+                        endpoint += `/${recordID}`;
+                    } else {
+                        console.error(`LỖI: Không tìm thấy ID (${config.idKey}) trong dữ liệu form.`);
+                    }
+                }
+                // Ưu tiên 2: Dùng idKeys (Composite Key) -> Tạo URL dạng /resource?key=val
+                else if (config.idKeys && Array.isArray(config.idKeys)) {
+                    const params = new URLSearchParams();
+                    config.idKeys.forEach(key => {
+                        const actualKey = Object.keys(payload).find(k => k.toLowerCase() === key.toLowerCase());
+                        if (actualKey && payload[actualKey]) params.append(key, payload[actualKey]);
+                    });
+                    if (params.toString()) endpoint += `?${params.toString()}`;
+                }
+            }
+
+            console.log(`🚀 Sending ${isEdit ? 'PUT' : 'POST'} to: ${endpoint}`, payload);
+
+            // 4. Gọi API
             const response = await fetch(endpoint, {
                 method: isEdit ? 'PUT' : 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${user.token}`,
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload) // Gửi payload đã xử lý số liệu
             });
 
-            if (!response.ok) throw new Error(isEdit ? 'Lỗi khi cập nhật dữ liệu' : 'Lỗi khi thêm mới');
+            if (!response.ok) {
+                const errorText = await response.text();
+                // Thử parse JSON lỗi nếu có để hiển thị đẹp hơn
+                try {
+                    const errJson = JSON.parse(errorText);
+                    // Nếu lỗi là thiếu trường (ví dụ "Field required: note"), báo rõ ràng
+                    if (errJson.detail && Array.isArray(errJson.detail)) {
+                        const missingFields = errJson.detail.map(e => e.loc[1]).join(', ');
+                        throw new Error(`Dữ liệu không hợp lệ: Kiểm tra trường [${missingFields}]`);
+                    }
+                    throw new Error(errJson.detail || errJson.message || `Lỗi ${response.status}`);
+                } catch (err) {
+                    console.error('Error parsing error response JSON:', err);
+                    throw new Error(`Lỗi ${response.status}: ${errorText} `);
+                }
+            }
+
             setShowModal(false);
             fetchData(activeTab);
+            alert("Lưu dữ liệu thành công!");
+
         } catch (err) {
-            alert(err.message);
+            console.error(err);
+            alert("Thất bại: " + err.message);
         }
     };
-
-    const handleItemEdit = useCallback((item) => {
-        setSelectedItem(item);
-        setModalMode('edit');
-        setShowModal(true);
-    }, []);
 
     const handleItemDelete = useCallback(async (item) => {
         const permissions = POSITION_PERMISSIONS[user.position]?.[activeTab];
@@ -1189,9 +1123,7 @@ export default function App() {
             const endpoint = `${API_BASE_URL}${TABS[activeTab].endpoint}/${id}`;
             await fetch(endpoint, {
                 method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${user.token}`,
-                },
+                headers: { 'Authorization': `Bearer ${user.token}` },
             });
             fetchData(activeTab);
         } catch (err) {
@@ -1214,9 +1146,7 @@ export default function App() {
                 const endpoint = `${API_BASE_URL}${TABS[activeTab].endpoint}/${id}`;
                 await fetch(endpoint, {
                     method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${user.token}`,
-                    },
+                    headers: { 'Authorization': `Bearer ${user.token}` },
                 });
             }
             setSelectedRows([]);
@@ -1225,10 +1155,6 @@ export default function App() {
             alert('Lỗi khi xóa: ' + err.message);
         }
     };
-
-    if (!user) {
-        return <LoginPage onLogin={handleLogin} />;
-    }
 
     if (!user) {
         return <LoginPage onLogin={handleLogin} />;
@@ -1298,27 +1224,40 @@ export default function App() {
                             {/* Search and Filters */}
                             <div className="mb-3 flex flex-wrap gap-2">
                                 <div className="flex-1 min-w-[200px] ">
-                                        <div className="relative">
-                                            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                            <input
-                                                type="text"
-                                                placeholder="Tìm kiếm..."
-                                                value={searchTerm}
-                                                onChange={(e) => setSearchTerm(e.target.value)}
-                                                className="w pl-8 pr-3 py-2 border border-blue-900   rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-200 text-black"
-                                            />
-                                        </div>
+                                    <div className="relative">
+                                        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="Tìm kiếm..."
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="w pl-8 pr-3 py-2 border border-blue-900   rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-200 text-black"
+                                        />
+                                    </div>
                                 </div>
-                                {activeTab === 'products' && categories.length > 0 && (
+                                {activeTab === 'products' && (
                                     <select
                                         value={filterCategory}
                                         onChange={(e) => setFilterCategory(e.target.value)}
                                         className="px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                     >
                                         <option value="">Tất cả danh mục</option>
-                                        {categories.map(cat => (
-                                            <option key={cat} value={cat}>{cat}</option>
-                                        ))}
+                                        <option value="CPU">CPU</option>
+                                        <option value="GPU">GPU</option>
+                                        <option value="RAM">RAM</option>
+                                        <option value="Mainboard">Mainboard</option>
+                                        <option value="Storage">Storage</option>
+                                        <option value="PSU">PSU</option>
+                                        <option value="Case">Case</option>
+                                        <option value="Cooling">Cooling</option>
+                                        <option value="Monitor">Monitor</option>
+                                        <option value="Mouse">Mouse</option>
+                                        <option value="Keyboard">Keyboard</option>
+                                        <option value="Headset">Headset</option>
+                                        <option value="Speaker">Speaker</option>
+                                        <option value="Accessory">Accessory</option>
+
+
                                     </select>
                                 )}
                                 {activeTab === 'orders' && (
@@ -1363,9 +1302,6 @@ export default function App() {
                     onSave={handleSave}
                     onCancel={() => setShowModal(false)}
                     mode={modalMode}
-                    products={products}
-                    inventories={inventories}
-                    vendors={vendors}
                 />
             )}
 
@@ -1378,27 +1314,17 @@ export default function App() {
                         setRelationsData([]);
                         setRelationsType('');
                     }}
-                    onEdit={() => {
-                        // The selectedItem is already set by handleRowClick.
-                        // We can now open the edit modal for it.
-                        if (selectedItem) {
-                            setModalMode('edit');
-                            setShowModal(true);
-                        }
+                    onEdit={(item) => {
+                        setSelectedItem(item);
+                        setModalMode('edit');
+                        setShowModal(true);
                         setShowRelationsModal(false);
                     }}
+                    onDelete={handleItemDelete}
                     activeTab={activeTab}
                     selectedItem={selectedItem}
                     user={user}
                     refreshData={() => fetchData(activeTab)}
-                />
-            )}
-
-            {showOrderDetails && (
-                <OrderDetailsModal
-                    orderDetails={orderDetails}
-                    onClose={() => setShowOrderDetails(false)}
-                    isLoading={isLoadingOrderDetails}
                 />
             )}
         </div>

@@ -13,9 +13,9 @@ export const POSITION_PERMISSIONS = {
         products: ['view', 'create', 'edit', 'delete'],
         orders: ['view', 'create', 'edit', 'delete'],
         payments: ['view', 'create', 'edit', 'delete'],
-        staff: ['view', 'create', 'edit', 'delete'],
+        staffs: ['view', 'create', 'edit', 'delete'],
         vendors: ['view', 'create', 'edit', 'delete'],
-        inventory: ['view', 'create', 'edit', 'delete'],
+        inventories: ['view', 'create', 'edit', 'delete'],
         reports: ['view']
     },
     Manager: {
@@ -23,9 +23,9 @@ export const POSITION_PERMISSIONS = {
         products: ['view', 'create', 'edit', 'delete'],
         orders: ['view', 'create', 'edit', 'delete'],
         payments: ['view', 'create', 'edit', 'delete'],
-        staff: ['view', 'create', 'edit', 'delete'],
+        staffs: ['view', 'create', 'edit', 'delete'],
         vendors: ['view', 'create', 'edit', 'delete'],
-        inventory: ['view', 'create', 'edit', 'delete'],
+        inventories: ['view', 'create', 'edit', 'delete'],
         reports: ['view']
     },
     Sales: {
@@ -33,15 +33,15 @@ export const POSITION_PERMISSIONS = {
         products: ['view'],
         orders: ['view', 'create'],
         payments: ['view', 'create'],
-        staff: ['view'],
+        staffs: ['view'],
         vendors: ['view'],
-        inventory: ['view']
+        inventories: ['view']
     },
     Inventory: {
         products: ['view', 'edit'],
         orders: ['view'],
         vendors: ['view'],
-        inventory: ['view', 'create', 'edit']
+        inventories: ['view', 'create', 'edit']
     },
     Cashier: {
         customers: ['view'],
