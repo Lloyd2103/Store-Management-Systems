@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ShoppingCart, Search, User, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config";
@@ -8,12 +8,16 @@ export default function CustomerView({ cart, setCart }) {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const navigate = useNavigate();
+  const hasFetched = useRef(false);
 
   const [filterBrand, setFilterBrand] = useState("");
   const [filterName, setFilterName] = useState("");
   const [filterPrice, setFilterPrice] = useState(["", ""]);
 
   useEffect(() => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+
     fetch(`${API_BASE_URL}/products`)
       .then((res) => res.json())
       .then((data) => {

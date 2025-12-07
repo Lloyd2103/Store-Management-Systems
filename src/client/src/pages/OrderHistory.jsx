@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config";
 
@@ -6,45 +6,45 @@ export default function OrderHistory() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const hasFetched = useRef(false);
 
   const customer = JSON.parse(localStorage.getItem("customer"));
 
   useEffect(() => {
     if (!customer || !customer.customerID) {
       navigate("/login");
+      return;
     }
-  }, [customer, navigate]);
 
-  useEffect(() => {
-    if (!customer || !customer.customerID) return;
+    if (hasFetched.current) return; // Ngăn fetch duplicate
+    hasFetched.current = true;
 
     const fetchOrders = async () => {
       try {
+        // Fetch orders của customer
         const res = await fetch(`${API_BASE_URL}/orders/${customer.customerID}`);
-        const data = await res.json();
+        const ordersData = await res.json();
 
-        if (!Array.isArray(data)) {
-          console.error("Orders API trả về sai định dạng:", data);
+        if (!Array.isArray(ordersData)) {
+          console.error("Orders API trả về sai định dạng:", ordersData);
           setLoading(false);
           return;
         }
 
-        const ordersWithItems = await Promise.all(
-          data.map(async (order) => {
-            try {
-              const req = await fetch(`${API_BASE_URL}/requests/${order.orderID}`);
-              const reqData = await req.json();
+        // Fetch tất cả items một lần duy nhất
+        const reqRes = await fetch(`${API_BASE_URL}/requests`);
+        const allRequests = await reqRes.json();
 
-              return {
-                ...order,
-                items: Array.isArray(reqData) ? reqData : [],
-              };
-            } catch (err) {
-              console.error("Lỗi khi tải items:", err);
-              return { ...order, items: [] };
-            }
-          })
-        );
+        // Map items cho mỗi order
+        const ordersWithItems = ordersData.map((order) => {
+          const items = Array.isArray(allRequests)
+            ? allRequests.filter((req) => req.orderID === order.orderID)
+            : [];
+          return {
+            ...order,
+            items: items,
+          };
+        });
 
         setOrders(ordersWithItems);
       } catch (err) {
@@ -55,7 +55,7 @@ export default function OrderHistory() {
     };
 
     fetchOrders();
-  }, [customer]);
+  }, [customer, navigate]);
 
   if (loading) {
     return (

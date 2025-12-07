@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config";
 
@@ -8,6 +8,7 @@ export default function AccountView({ customer, onLogout, setCustomer }) {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const hasFetched = useRef(false);
 
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem("customer"));
@@ -16,6 +17,9 @@ export default function AccountView({ customer, onLogout, setCustomer }) {
       navigate("/login");
       return;
     }
+
+    if (hasFetched.current) return;
+    hasFetched.current = true;
 
     setFormData(stored);
     setCustomer(stored);
@@ -32,7 +36,7 @@ export default function AccountView({ customer, onLogout, setCustomer }) {
         })
         .catch((err) => console.error("Lỗi khi tải thông tin:", err));
     }
-  }, [navigate, setCustomer]);
+  }, []);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
