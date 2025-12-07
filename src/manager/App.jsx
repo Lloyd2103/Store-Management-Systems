@@ -259,27 +259,106 @@ const DataTable = ({ data, onRowClick, onItemEdit, onItemDelete, selectedRows, o
 };
 
 // Relations Modal Component
-const RelationsModal = ({ data, type, onClose, onEdit, onDelete, activeTab, selectedItem, user }) => {
+const RelationsModal = ({ data, type, onClose, onEdit, onDelete, activeTab, selectedItem, user, refreshData }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState(selectedItem || {});
+    const [isCreating, setIsCreating] = useState(false);
+    const [createData, setCreateData] = useState({});
 
-    
+
 
     const getTitle = () => {
+        if (isCreating) {
+            return type === 'supplies' ? 'Thêm Supply mới' : 'Thêm Store mới';
+        }
         if (isEditing) {
             return activeTab === 'vendors' ? 'Chỉnh sửa Nhà cung cấp' : 'Chỉnh sửa Kho';
         }
         switch (type) {
-            case 'product-relations':
-                return 'Quan hệ Sản phẩm';
-            case 'vendor-products':
+            case 'supplies':
                 return 'Sản phẩm được cung cấp';
-            case 'inventory-products':
+            case 'stores':
                 return 'Sản phẩm trong kho';
-            case 'order-details':
+            case 'request':
                 return 'Chi tiết Đơn hàng';
             default:
                 return 'Quan hệ';
+        }
+    };
+
+    const getCreateSchema = () => {
+        if (type === 'supplies') {
+            return {
+                productID: '',
+                vendorID: selectedItem?.vendorID || '',
+                supplyDate: new Date().toISOString().split('T')[0],
+                quantitySupplier: '',
+                handledBy: user?.staffID || ''
+            };
+        }
+        if (type === 'stores') {
+            return {
+                productID: '',
+                inventoryID: selectedItem?.inventoryID || '',
+                storeDate: new Date().toISOString().split('T')[0],
+                quantityStore: '',
+                roleStore: ['Inbound', 'Outbound', 'Adjustment', 'Transfer_In', 'Transfer_Out', 'Return']
+            };
+        }
+        return {};
+    };
+
+    const handleCreateClick = () => {
+        setCreateData(getCreateSchema());
+        setIsCreating(true);
+    };
+
+    const handleCreateChange = (e) => {
+        const { name, value, type: inputType } = e.target;
+        let processedValue = value;
+        if (inputType === 'number') {
+            processedValue = value === '' ? '' : Number(value);
+        }
+        setCreateData({ ...createData, [name]: processedValue });
+    };
+
+    const handleSaveCreate = async () => {
+        try {
+            const endpoint = type === 'supplies'
+                ? `${API_BASE_URL}/supplies`
+                : `${API_BASE_URL}/stores`;
+
+            const payload = { ...createData };
+            // Convert numeric fields
+            Object.keys(payload).forEach(key => {
+                const k = key.toLowerCase();
+                if (k.includes('id') || k.includes('quantity')) {
+                    if (payload[key] !== '' && payload[key] !== null) {
+                        payload[key] = Number(payload[key]);
+                    }
+                }
+            });
+
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.token}`,
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || 'Lỗi khi tạo mới');
+            }
+
+            setIsCreating(false);
+            alert('Tạo mới thành công!');
+            if (refreshData) refreshData();
+            onClose();
+        } catch (err) {
+            alert('Lỗi: ' + err.message);
         }
     };
 
@@ -336,7 +415,7 @@ const RelationsModal = ({ data, type, onClose, onEdit, onDelete, activeTab, sele
             customerType: ['Individual', 'Corporate', 'Partner', 'Reseller'],
             loyalLevel: ['New', 'Bronze', 'Silver', 'Gold', 'Platinum'],
             inventoryStatus: ['Active', 'Inactive', 'Low Stock', 'Out of Stock'],
-            roleStore: ['Import', 'Export', 'Stocktaking', 'Manual', 'Initial', 'Update'],
+            
             vendorStatus: ['Active', 'Inactive', 'Pending', 'Blacklisted'],
             transactionStatus: ['Pending', 'Completed', 'Failed', 'Refunded']
         };
@@ -436,7 +515,7 @@ const RelationsModal = ({ data, type, onClose, onEdit, onDelete, activeTab, sele
                 ],
                 emptyMessage: 'Kho này chưa có lịch sử lưu trữ'
             },
-            
+
         };
         return configs[relationType];
     };
@@ -503,13 +582,82 @@ const RelationsModal = ({ data, type, onClose, onEdit, onDelete, activeTab, sele
 
     const modalSize = type === 'order-details' ? 'w-full max-w-6xl' : 'w-full max-w-4xl';
 
+    // Create form for stores/supplies
+    if (isCreating) {
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 z-50">
+                <div className="bg-white rounded p-4 w-full max-w-md shadow-xl relative max-h-[90vh] overflow-hidden">
+                    <button onClick={() => setIsCreating(false)} className="absolute top-2 right-2 text-gray-400 hover:text-red-600">
+                        <X className="w-4 h-4" />
+                    </button>
+                    <h2 className="text-lg font-bold text-indigo-700 mb-3">{getTitle()}</h2>
+                    <form onSubmit={(e) => { e.preventDefault(); handleSaveCreate(); }} className="space-y-2 max-h-[70vh] overflow-y-auto">
+                        {Object.entries(createData).map(([key]) => {
+                            const k = key.toLowerCase();
+                            const isReadOnly = k.includes('vendorid') || k.includes('inventoryid');
+                            const isSelect = key === 'roleStore';
+                            const inputType = k.includes('date') ? 'date' : (k.includes('id') || k.includes('quantity')) ? 'number' : 'text';
+
+                            return (
+                                <div key={key}>
+                                    <label className="block text-xs font-medium text-blue-600 mb-1">
+                                        {getColumnDisplayName(key)}
+                                    </label>
+                                    {isSelect ? (
+                                        <select
+                                            name={key}
+                                            value={createData[key] ?? ''}
+                                            onChange={handleCreateChange}
+                                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                        >
+                                            <option value="Inbound">Inbound</option>
+                                            <option value="Outbound">Outbound</option>
+                                            <option value="Adjustment">Adjustment</option>
+                                            <option value="Transfer_In">Transfer_In</option>
+                                            <option value="Transfer_Out">Transfer_Out</option>
+                                            <option value="Return">Return</option>
+                                        </select>
+                                    ) : (
+                                        <input
+                                            name={key}
+                                            type={inputType}
+                                            value={createData[key] ?? ''}
+                                            onChange={handleCreateChange}
+                                            readOnly={isReadOnly}
+                                            className={`w-full border border-gray-300 rounded px-2 py-1 text-sm ${isReadOnly ? 'bg-gray-100' : ''}`}
+                                            min={inputType === 'number' ? 0 : undefined}
+                                        />
+                                    )}
+                                </div>
+                            );
+                        })}
+                        <button type="submit" className="w-full bg-green-600 text-white py-1.5 rounded text-sm hover:bg-green-700">
+                            Tạo mới
+                        </button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 z-50">
             <div className={`bg-white rounded p-4 ${modalSize} shadow-xl relative max-h-[90vh] overflow-hidden flex flex-col`}>
                 <button onClick={onClose} className="absolute top-2 right-2 text-black hover:text-black z-10 bg-white p-2">
                     <X className="w-5 h-5" />
                 </button>
-                <h2 className="text-lg font-bold text-indigo-700 mb-3">{getTitle()}</h2>
+                <div className="flex justify-between items-center mb-3">
+                    <h2 className="text-lg font-bold text-indigo-700">{getTitle()}</h2>
+                    {(type === 'supplies' || type === 'stores') && (
+                        <button
+                            onClick={handleCreateClick}
+                            className="flex items-center bg-green-500 text-white px-3 py-1.5 rounded shadow-md hover:bg-green-600 transition duration-150 text-sm mr-8"
+                        >
+                            <Plus className="w-4 h-4 mr-1" />
+                            Thêm {type === 'supplies' ? 'Supply' : 'Store'}
+                        </button>
+                    )}
+                </div>
 
                 <div className="flex-1 overflow-auto">
                     {renderGenericTable()}
@@ -566,9 +714,10 @@ const FormModal = ({ data, onSave, onCancel, mode = 'edit' }) => {
             customerType: ['Individual', 'Corporate', 'Partner', 'Reseller'],
             loyalLevel: ['New', 'Bronze', 'Silver', 'Gold', 'Platinum'],
             inventoryStatus: ['Active', 'Inactive', 'Low Stock', 'Out of Stock'],
-            roleStore: ['Import', 'Export', 'Stocktaking', 'Manual', 'Initial', 'Update'],
+            
             vendorStatus: ['Active', 'Inactive', 'Pending', 'Blacklisted'],
-            transactionStatus: ['Pending', 'Completed', 'Failed', 'Refunded']
+            transactionStatus: ['Pending', 'Completed', 'Failed', 'Refunded'],
+
         };
         // special-case: position selection for staff accounts
         if (key === 'position') return ['Manager', 'Sales', 'Inventory',];
@@ -817,7 +966,7 @@ export default function App() {
                 modalType: 'stores'
             },
             // Map thêm key 'inventory' nếu activeTab của bạn là số ít
-            
+
         };
 
         const config = RELATION_CONFIG[activeTab];

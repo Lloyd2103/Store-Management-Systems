@@ -176,8 +176,8 @@ DELETE_INVENTORY = "DELETE FROM tbl_inventory WHERE inventoryID = %s"
 SELECT_REQUESTS = "SELECT * FROM tbl_requests"
 SELECT_PRODUCT_BY_ORDERID = "SELECT * FROM tbl_requests WHERE orderID = %s"
 INSERT_REQUEST = "INSERT INTO tbl_requests (orderID, productID, quantityOrdered, discount, note) VALUES (%s, %s, %s, %s, %s)"
-UPDATE_REQUEST = "UPDATE tbl_requests SET orderID=%s, productID=%s, quantityOrdered=%s, discount=%s, note=%s WHERE orderID=%s"
-DELETE_REQUEST = "DELETE FROM tbl_requests WHERE requestID = %s"
+UPDATE_REQUEST = "UPDATE tbl_requests SET orderID=%s, productID=%s, quantityOrdered=%s, discount=%s, note=%s WHERE orderID=%s "
+DELETE_REQUEST = "DELETE FROM tbl_requests WHERE orderID = %s "
 
 # ===== STORES =====
 SELECT_STORES = """
@@ -205,12 +205,8 @@ SELECT_STORES_BY_PRODUCT = """
 """
 SELECT_STORES_BY_INVENTORY = """
     SELECT 
-        s.*,
-        p.productName,
-        p.productLine,
-        p.productBrand
+        s.*
     FROM tbl_stores s
-    LEFT JOIN tbl_product p ON s.productID = p.productID
     WHERE s.inventoryID = %s
     ORDER BY s.storeDate DESC
 """
@@ -235,13 +231,8 @@ UPDATE_INVENTORY_FOR_STORE_IMPORT = """
 SELECT_STORE_BY_ID = "SELECT quantityStore, roleStore FROM tbl_stores WHERE productID = %s"
 UPDATE_STORE = """
     UPDATE tbl_stores 
-    SET productID=%s, storeDate=%s, quantityStore=%s, roleStore=%s 
-    WHERE productID=%s
-"""
-UPDATE_INVENTORY_FOR_STORE_UPDATE = """
-    UPDATE tbl_inventory 
-    SET stockQuantity = stockQuantity + %s, lastedUpdate = NOW()
-    WHERE inventoryID = %s
+    SET inventoryID =%s, productID=%s, storeDate=%s, quantityStore=%s, roleStore=%s 
+    WHERE inventoryID =%s
 """
 DELETE_STORE = "DELETE FROM tbl_stores WHERE productID = %s"
 
