@@ -25,7 +25,7 @@ def get_supplies_by_product(product_id: int):
         logging.error(f"Error in get_supplies_by_product: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/supplies/vendor/{vendor_id}")
+@router.get("/supplies/{vendor_id}")
 def get_supplies_by_vendor(vendor_id: int):
     """Lấy tất cả supplies của một vendor"""
     try:
@@ -55,7 +55,7 @@ def create_supply(payload: Supply):
                 payload.vendorID, 
                 payload.supplyDate or datetime.datetime.now(), 
                 payload.quantitySupplier, 
-                payload.note
+                payload.handledBy
             ))
             
             conn.commit()
@@ -94,7 +94,7 @@ def update_supply(id: int, payload: Supply):
                 payload.vendorID, 
                 payload.supplyDate or datetime.datetime.now(), 
                 payload.quantitySupplier, 
-                payload.note, 
+                payload.handledBy, 
                 id
             ))
             

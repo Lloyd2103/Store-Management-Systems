@@ -63,20 +63,20 @@ DELETE_PRODUCT = "DELETE FROM tbl_product WHERE productID = %s"
 SELECT_ORDER_BY_CUSTOMER_ID = "SELECT * FROM tbl_order WHERE customerID = %s"
 INSERT_ORDER = """
     INSERT INTO tbl_order (
-        totalAmount, orderStatus, paymentDate, paymentStatus,
+        totalAmount, orderStatus,  paymentStatus,
         pickupMethod, shippedDate, shippedStatus, customerID, staffID
     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
 """
 UPDATE_ORDER = """
     UPDATE tbl_order
     SET orderStatus=%s, paymentStatus=%s, pickupMethod=%s,
-        shippedStatus=%s, shippedDate=%s, paymentDate=%s, totalAmount=%s
+        shippedStatus=%s, shippedDate=%s, totalAmount=%s
     WHERE orderID=%s
 """
 DELETE_ORDER = "DELETE FROM tbl_order WHERE orderID = %s"
 CHECKOUT_INSERT_ORDER = """
     INSERT INTO tbl_order (
-        totalAmount, orderStatus, paymentDate, paymentStatus,
+        totalAmount, orderStatus, paymentStatus,
         pickupMethod, shippedDate, shippedStatus, customerID, staffID
     ) VALUES (%s,'Pending',%s,%s,%s,%s,%s,%s,%s)
 """
@@ -123,25 +123,7 @@ SELECT_VENDORS = """
     GROUP BY v.vendorID
     ORDER BY v.vendorID
 """
-SELECT_VENDOR_PRODUCTS = """
-    SELECT 
-        p.productID,
-        p.productName,
-        p.priceEach,
-        p.productLine,
-        p.productScale,
-        p.productBrand,
-        p.productDiscription,
-        p.warrantyPeriod,
-        p.MSRP,
-        s.supplyDate,
-        s.quantitySupplier,
-        s.handledBy
-    FROM tbl_product p
-    INNER JOIN tbl_supplies s ON p.productID = s.productID
-    WHERE s.vendorID = %s
-    ORDER BY s.supplyDate DESC
-"""
+
 INSERT_VENDOR = "INSERT INTO tbl_vendor (vendorName, contactName, phone, email, address) VALUES (%s, %s, %s, %s, %s)"
 UPDATE_VENDOR = "UPDATE tbl_vendor SET vendorName=%s, contactName=%s, phone=%s, address=%s WHERE vendorID=%s"
 DELETE_VENDOR = "DELETE FROM tbl_vendor WHERE vendorID = %s"
@@ -179,11 +161,10 @@ UPDATE_INVENTORY = """
         lastedUpdate=NOW(), inventoryNote=%s, inventoryStatus=%s 
     WHERE inventoryID=%s
 """
-SELECT_STORE_FOR_INVENTORY_UPDATE = "SELECT storeID FROM tbl_stores WHERE inventoryID = %s AND productID = %s"
 UPDATE_STORE_FOR_INVENTORY_UPDATE = """
     UPDATE tbl_stores 
     SET quantityStore = %s, storeDate = NOW()
-    WHERE inventoryID = %s AND productID = %s
+    WHERE productID = %s
 """
 INSERT_STORE_FOR_INVENTORY_UPDATE = """
     INSERT INTO tbl_stores (productID, inventoryID, storeDate, quantityStore, roleStore)
@@ -193,9 +174,9 @@ DELETE_INVENTORY = "DELETE FROM tbl_inventory WHERE inventoryID = %s"
 
 # ===== REQUESTS =====
 SELECT_REQUESTS = "SELECT * FROM tbl_requests"
-SELECT_REQUEST_BY_ID = "SELECT * FROM tbl_requests join tbl_product on tbl_requests.productID = tbl_product.productID WHERE orderID = %s"
+SELECT_PRODUCT_BY_ORDERID = "SELECT * FROM tbl_requests WHERE orderID = %s"
 INSERT_REQUEST = "INSERT INTO tbl_requests (orderID, productID, quantityOrdered, discount, note) VALUES (%s, %s, %s, %s, %s)"
-UPDATE_REQUEST = "UPDATE tbl_requests SET orderID=%s, productID=%s, quantityOrdered=%s, discount=%s, note=%s WHERE requestID=%s"
+UPDATE_REQUEST = "UPDATE tbl_requests SET orderID=%s, productID=%s, quantityOrdered=%s, discount=%s, note=%s WHERE orderID=%s"
 DELETE_REQUEST = "DELETE FROM tbl_requests WHERE requestID = %s"
 
 # ===== STORES =====
@@ -239,23 +220,30 @@ INSERT_STORE = """
     INSERT INTO tbl_stores (productID, inventoryID, storeDate, quantityStore, roleStore) 
     VALUES (%s, %s, %s, %s, %s)
 """
+
+SELECT_STORE = """
+    SELECT quantityStore 
+    FROM tbl_stores 
+    WHERE productID = %s
+"""
+
 UPDATE_INVENTORY_FOR_STORE_IMPORT = """
     UPDATE tbl_inventory 
     SET stockQuantity = stockQuantity + %s, lastedUpdate = NOW()
     WHERE inventoryID = %s
 """
-SELECT_STORE_BY_ID = "SELECT quantityStore, roleStore FROM tbl_stores WHERE storeID = %s"
+SELECT_STORE_BY_ID = "SELECT quantityStore, roleStore FROM tbl_stores WHERE productID = %s"
 UPDATE_STORE = """
     UPDATE tbl_stores 
-    SET productID=%s, inventoryID=%s, storeDate=%s, quantityStore=%s, roleStore=%s 
-    WHERE storeID=%s
+    SET productID=%s, storeDate=%s, quantityStore=%s, roleStore=%s 
+    WHERE productID=%s
 """
 UPDATE_INVENTORY_FOR_STORE_UPDATE = """
     UPDATE tbl_inventory 
     SET stockQuantity = stockQuantity + %s, lastedUpdate = NOW()
     WHERE inventoryID = %s
 """
-DELETE_STORE = "DELETE FROM tbl_stores WHERE storeID = %s"
+DELETE_STORE = "DELETE FROM tbl_stores WHERE productID = %s"
 
 # ===== SUPPLIES =====
 SELECT_SUPPLIES = """
@@ -285,28 +273,25 @@ SELECT_SUPPLIES_BY_PRODUCT = """
 """
 SELECT_SUPPLIES_BY_VENDOR = """
     SELECT 
-        s.*,
-        p.productName,
-        p.productLine,
-        p.productBrand
+        *
     FROM tbl_supplies s
-    LEFT JOIN tbl_product p ON s.productID = p.productID
     WHERE s.vendorID = %s
     ORDER BY s.supplyDate DESC
 """
 SELECT_PRODUCT_FOR_SUPPLY = "SELECT productID FROM tbl_product WHERE productID = %s"
 SELECT_VENDOR_FOR_SUPPLY = "SELECT vendorID FROM tbl_vendor WHERE vendorID = %s"
+
 INSERT_SUPPLY = """
-    INSERT INTO tbl_supplies (productID, vendorID, supplyDate, quantitySupplier, note) 
+    INSERT INTO tbl_supplies (productID, vendorID, supplyDate, quantitySupplier, handledBy) 
     VALUES (%s, %s, %s, %s, %s)
 """
 UPDATE_SUPPLY = """
     UPDATE tbl_supplies 
-    SET productID=%s, vendorID=%s, supplyDate=%s, quantitySupplier=%s, note=%s 
-    WHERE supplyID=%s
+    SET productID=%s, vendorID=%s, supplyDate=%s, quantitySupplier=%s, handledBy=%s 
+    WHERE productID=%s
 """
-DELETE_SUPPLY = "DELETE FROM tbl_supplies WHERE supplyID = %s"
-SELECT_SUPPLY_BY_ID = "SELECT * FROM tbl_supplies WHERE supplyID = %s"
+DELETE_SUPPLY = "DELETE FROM tbl_supplies WHERE productID = %s"
+SELECT_SUPPLY_BY_ID = "SELECT * FROM tbl_supplies WHERE productID = %s"
 
 # ===== CATEGORIES =====
 SELECT_CATEGORIES = "SELECT DISTINCT productLine as categoryName FROM tbl_product WHERE productLine IS NOT NULL"
@@ -459,14 +444,14 @@ SUMMARY_TOTAL_DEBTS = """
 SUMMARY_TOTAL_INVENTORY_VALUE = "SELECT SUM(stockQuantity * unitCost) as total FROM tbl_inventory"
 
 # ===== AUTH =====
-SELECT_CUSTOMER_FOR_AUTH = "SELECT 1 FROM tbl_customer WHERE phone=%s OR email=%s"
+SELECT_CUSTOMER_FOR_AUTH = "SELECT * FROM tbl_customer WHERE phone=%s OR email=%s"
 INSERT_CUSTOMER_FOR_AUTH = """
     INSERT INTO tbl_customer (
         customerName, phone, email, address, postalCode,
         customerType, loyalPoint, loyalLevel, passwordHash
     ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
 """
-SELECT_STAFF_FOR_AUTH = "SELECT 1 FROM tbl_staff WHERE phone=%s OR email=%s"
+SELECT_STAFF_FOR_AUTH = "SELECT * FROM tbl_staff WHERE phone=%s OR email=%s"
 INSERT_STAFF_FOR_AUTH = """
     INSERT INTO tbl_staff (
         staffName, position, phone, email, address, managerID, salary, passwordHash

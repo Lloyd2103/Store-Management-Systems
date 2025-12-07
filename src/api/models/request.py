@@ -6,4 +6,4 @@ class Request(BaseModel):
     productID: int
     quantityOrdered: int
     discount: Optional[float] = 0
-    note: str
+    note: Optional[str] = None

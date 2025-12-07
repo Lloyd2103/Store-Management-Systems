@@ -11,6 +11,7 @@ class Inventory(BaseModel):
     lastedUpdate: Optional[datetime.datetime] = None
     inventoryNote: Optional[str] = None
     inventoryStatus: Optional[str] = "Active"
+    productID: Optional[int] = None
 
 class InventoryImport(BaseModel):
     productID: int

@@ -25,7 +25,7 @@ def get_stores_by_product(product_id: int):
         logging.error(f"Error in get_stores_by_product: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/stores/inventory/{inventory_id}")
+@router.get("/stores/{inventory_id}")
 def get_stores_by_inventory(inventory_id: int):
     """Lấy tất cả stores của một inventory"""
     try:
@@ -63,8 +63,8 @@ def create_store(payload: Store):
                 cursor.execute(queries.UPDATE_INVENTORY_FOR_STORE_IMPORT, (payload.quantityStore, payload.inventoryID))
             
             conn.commit()
-            store_id = cursor.lastrowid
-        return {"message": "Store created", "storeID": store_id}
+            
+        return {"message": "Store created"}
     except HTTPException:
         if conn:
             conn.rollback()
@@ -78,54 +78,43 @@ def create_store(payload: Store):
         safe_close_connection(conn)
 
 @router.put("/stores/{id}")
-def update_store(id: int, payload: Store):
+def update_store(id: str, payload: Store):
     conn = None
     try:
         conn = get_connection()
-        with conn.cursor() as cursor:
-            # Kiểm tra product và inventory có tồn tại không
+        # Lưu ý: dictionary=True giúp cursor trả về dict, nhưng nếu thư viện của bạn mặc định là dict thì không cần sửa dòng này
+        with conn.cursor() as cursor: 
+
+            # 1. Kiểm tra tồn tại Product & Inventory (Giữ nguyên)
             cursor.execute(queries.SELECT_PRODUCT_FOR_STORE, (payload.productID,))
             if not cursor.fetchone():
-                raise HTTPException(status_code=404, detail=f"Product with ID {payload.productID} not found")
+                raise HTTPException(status_code=404, detail=f"Product {payload.productID} not found")
             
             cursor.execute(queries.SELECT_INVENTORY_FOR_STORE, (payload.inventoryID,))
             if not cursor.fetchone():
-                raise HTTPException(status_code=404, detail=f"Inventory with ID {payload.inventoryID} not found")
+                raise HTTPException(status_code=404, detail=f"Inventory {payload.inventoryID} not found")
             
-            # Lấy số lượng cũ để tính toán chênh lệch
-            cursor.execute(queries.SELECT_STORE_BY_ID, (id,))
-            old_store = cursor.fetchone()
-            if not old_store:
-                raise HTTPException(status_code=404, detail="Store not found")
             
-            old_quantity = old_store['quantityStore']
-            quantity_diff = payload.quantityStore - old_quantity
-            
-            # Cập nhật stores relationship
             cursor.execute(queries.UPDATE_STORE, (
-                payload.productID, 
-                payload.inventoryID, 
+                payload.productID,
+                payload.inventoryID,
                 payload.storeDate or datetime.datetime.now(), 
                 payload.quantityStore, 
-                payload.roleStore or 'Manual', 
-                id
+                payload.roleStore,
+                id    # storeID
             ))
-            
-            # Cập nhật stock quantity trong inventory nếu có thay đổi
-            if quantity_diff != 0 and payload.roleStore in ['Import', 'Manual']:
-                cursor.execute(queries.UPDATE_INVENTORY_FOR_STORE_UPDATE, (quantity_diff, payload.inventoryID))
-            
             conn.commit()
         return {"message": "Store updated successfully"}
+
     except HTTPException:
-        if conn:
-            conn.rollback()
+        if conn: conn.rollback()
         raise
     except Exception as e:
-        if conn:
-            conn.rollback()
+        if conn: conn.rollback()
         logging.error(f"Error in update_store: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        traceback.print_exc() 
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
     finally:
         safe_close_connection(conn)
     

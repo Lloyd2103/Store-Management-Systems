@@ -14,7 +14,8 @@ def check_inventory_usage(inventory_id: int) -> dict:
         conn = get_connection()
         with conn.cursor() as cursor:
             cursor.execute(queries.CHECK_INVENTORY_IN_STORES, (inventory_id,))
-            stores_count = cursor.fetchone()['count']
+            result = cursor.fetchone()
+            stores_count = result[0] if result and len(result) > 0 else 0
             
             return {
                 'has_stores': stores_count > 0,
@@ -97,7 +98,7 @@ def update_inventory(id: int, payload: Inventory):
             ))
             
             # Nếu có productID, cập nhật hoặc tạo stores relationship
-            if payload.productID:
+            if payload.productID is not None:
                 # Kiểm tra product có tồn tại không
                 cursor.execute(queries.SELECT_PRODUCT_BY_ID_FOR_INVENTORY, (payload.productID,))
                 if not cursor.fetchone():

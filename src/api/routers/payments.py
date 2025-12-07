@@ -20,7 +20,7 @@ def create_payment(payload: Payment):
     try:
         execute_sql(queries.INSERT_PAYMENT, (
             payload.orderID,
-            payload.tran=sactionAmount,
+            payload.transactionAmount,
             payload.paymentMethod,
             payload.transactionStatus
         ))

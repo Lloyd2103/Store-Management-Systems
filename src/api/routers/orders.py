@@ -44,7 +44,6 @@ def create_order(payload: Order):
         order_id = execute_sql(queries.INSERT_ORDER, (
             payload.totalAmount,
             payload.orderStatus,
-            payload.paymentDate,
             payload.paymentStatus,
             payload.pickupMethod,
             payload.shippedDate,
@@ -66,7 +65,6 @@ def update_order(id: int, payload: Order):
             payload.pickupMethod,
             payload.shippedStatus,
             payload.shippedDate,
-            payload.paymentDate,
             payload.totalAmount,
             id
         ))

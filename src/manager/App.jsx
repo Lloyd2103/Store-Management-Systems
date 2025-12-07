@@ -1,3 +1,4 @@
+/* eslint-disable no-dupe-keys */
 import React, { useState, useEffect, useCallback } from 'react';
 import { Users, Package, ShoppingCart, Truck, ClipboardList, Package2, Loader2, Plus, X, BarChart3, Search, Filter, Edit, Trash2, Eye } from 'lucide-react';
 import LoginPage from './pages/LoginPage';
@@ -11,9 +12,9 @@ const TABS = {
     products: { label: 'Sản phẩm', icon: Package, endpoint: '/products' },
     orders: { label: 'Đơn hàng', icon: ShoppingCart, endpoint: '/orders' },
     payments: { label: 'Thanh toán', icon: Package2, endpoint: '/payments' },
-    staff: { label: 'Nhân viên', icon: ClipboardList, endpoint: '/staffs' },
+    staffs: { label: 'Nhân viên', icon: ClipboardList, endpoint: '/staffs' },
     vendors: { label: 'Nhà cung cấp', icon: Truck, endpoint: '/vendors' },
-    inventory: { label: 'Kho', icon: Package2, endpoint: '/inventories' },
+    inventories: { label: 'Kho', icon: Package2, endpoint: '/inventories' },
     reports: { label: 'Báo cáo', icon: BarChart3, endpoint: '/reports' },
 };
 
@@ -95,11 +96,11 @@ const getColumnDisplayName = (columnName) => {
 
         // Thanh toán
         paymentID: 'Mã TT',
-        paymentDate: 'Ngày thanh toán',
-        paymentAmount: 'Số tiền',
+        orderID: 'Mã đơn',
+        transactionAmount: 'Số tiền',
         paymentMethod: 'Phương thức',
-        transactionID: 'Mã giao dịch',
-        note: 'Ghi chú',
+        transactionDate: 'Ngày giao dịch',
+        transactionStatus: 'Trạng thái giao dịch',
 
         // Tồn kho
         inventoryID: 'Mã kho',
@@ -127,7 +128,7 @@ const getColumnDisplayName = (columnName) => {
 const ActionButtons = ({ onEdit, onDelete, onView, activeTab }) => {
     // For orders, vendors, inventory: show View, Edit, Delete
     // For others: show Edit, Delete
-    const needsView = ['orders', 'vendors', 'inventory'].includes(activeTab);
+    const needsView = ['orders', 'vendors', 'inventories'].includes(activeTab);
 
     return (
         <div className="flex gap-2">
@@ -262,10 +263,7 @@ const RelationsModal = ({ data, type, onClose, onEdit, onDelete, activeTab, sele
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState(selectedItem || {});
 
-    const formatCurrency = (value) => {
-        if (value === null || value === undefined) return '0';
-        return Number(value).toLocaleString('vi-VN');
-    };
+    
 
     const getTitle = () => {
         if (isEditing) {
@@ -358,7 +356,7 @@ const RelationsModal = ({ data, type, onClose, onEdit, onDelete, activeTab, sele
                     <form onSubmit={(e) => { e.preventDefault(); handleSaveEdit(); }} className="space-y-2 max-h-[70vh] overflow-y-auto">
                         {Object.entries(editData)
                             .filter(([key]) => {
-                                const hiddenFields = ['lastedUpdate', 'orderDate', 'shippedDate', 'paymentDate'];
+                                const hiddenFields = ['lastedUpdate', 'orderDate', 'shippedDate'];
                                 return !hiddenFields.includes(key) && !key.toLowerCase().includes('id');
                             })
                             .map(([key]) => {
@@ -403,79 +401,42 @@ const RelationsModal = ({ data, type, onClose, onEdit, onDelete, activeTab, sele
         );
     }
 
-    // Generic table renderer for all relation types
     const getTableConfig = (relationType) => {
         const configs = {
-            'order-details': {
+            // 1. Cấu hình cho bảng Supplies (khi bấm vào Vendor)
+            'supplies': {
                 columns: [
-                    { key: 'orderID', label: 'Mã đơn', className: 'text-gray-900' },
-                    { key: 'productID', label: 'Mã sản phẩm', className: 'text-gray-900' },
-                    { key: 'productName', label: 'Tên sản phẩm', className: 'text-gray-900' },
-                    { key: 'discount', label: 'Giảm giá', className: 'text-gray-900' },
-                    { key: 'warrantyPeriod', label: 'Bảo hành', className: 'text-gray-900' },
-                    {
-                        key: 'quantityOrdered',
-                        label: 'Số lượng',
-                        className: 'text-gray-900',
-                        formatter: (value) => formatCurrency(value)
-                    },
-                    {
-                        key: 'priceEach',
-                        label: 'Giá mỗi sản phẩm',
-                        className: 'text-gray-900',
-                        formatter: (value) => `${formatCurrency(value)} đ`
-                    },
+                    { key: 'productID', label: 'Mã sản phẩm', className: 'text-black' },
+                    { key: 'quantitySupplier', label: 'SL Cung cấp', className: 'text-black', formatter: formatCurrency },
+                    { key: 'supplyDate', label: 'Ngày cung cấp', className: 'text-black', formatter: (v) => v ? new Date(v).toLocaleDateString('vi-VN') : '' },
+                    { key: 'handledBy', label: 'Người phụ trách', className: 'text-black' }
                 ],
-                extraColumn: {
-                    label: 'Thành tiền',
-                    calculate: (item) => {
-                        const total = (item.quantityOrdered || 0) * (item.priceEach || 0);
-                        return { value: total, display: `${formatCurrency(total)} đ`, className: 'font-semibold text-gray-900' };
-                    }
-                },
-                showTotal: true,
-                totalCalculator: (data) => data.reduce((sum, item) => sum + ((item.quantityOrdered || 0) * (item.priceEach || 0)), 0),
-                emptyMessage: 'Không có chi tiết đơn hàng'
+                emptyMessage: 'Nhà cung cấp này chưa cung cấp sản phẩm nào'
             },
-            'vendor-products': {
+
+            // 2. Cấu hình cho bảng Requests (khi bấm vào Order)
+            'request': { // Lưu ý: modalType bên App truyền sang là 'request' (số ít)
                 columns: [
-                    { key: 'productID', label: 'Mã SP', className: 'text-black' },
-                    { key: 'productName', label: 'Tên sản phẩm', className: 'text-black' },
-                    {
-                        key: 'quantitySupplier',
-                        label: 'Số lượng',
-                        className: 'text-black',
-                        formatter: formatCurrency
-                    },
-                    {
-                        key: 'supplyDate',
-                        label: 'Ngày cung cấp',
-                        className: 'text-black',
-                        formatter: (value) => value ? new Date(value).toLocaleDateString('vi-VN') : ''
-                    }
+                    { key: 'orderID', label: 'Mã đơn', className: 'text-black' },
+                    { key: 'productID', label: 'Mã sản phẩm', className: 'text-black' },
+                    { key: 'quantityOrdered', label: 'Số lượng Đặt', className: 'text-black', formatter: formatCurrency },
+                    { key: 'discount', label: 'Giảm giá', className: 'text-black' },
+                    { key: 'note', label: 'Ghi chú', className: 'text-black' }
                 ],
-                emptyMessage: 'Không có dữ liệu'
+                emptyMessage: 'Đơn hàng này chưa có yêu cầu chi tiết'
             },
-            'inventory-products': {
+
+            // 3. Cấu hình cho bảng Stores (khi bấm vào Inventory)
+            'stores': {
                 columns: [
-                    { key: 'productID', label: 'Mã SP', className: 'text-black' },
-                    { key: 'productName', label: 'Tên sản phẩm', className: 'text-black' },
-                    {
-                        key: 'quantityStore',
-                        label: 'Số lượng',
-                        className: 'text-black',
-                        formatter: formatCurrency
-                    },
-                    {
-                        key: 'storeDate',
-                        label: 'Ngày lưu',
-                        className: 'text-black',
-                        formatter: (value) => value ? new Date(value).toLocaleDateString('vi-VN') : ''
-                    },
-                    { key: 'roleStore', label: 'Loại', className: 'text-black' }
+                    { key: 'productID', label: 'Mã sản phẩm', className: 'text-black' },
+                    { key: 'quantityStore', label: 'Số lượng', className: 'text-black', formatter: formatCurrency },
+                    { key: 'storeDate', label: 'Ngày nhập kho', className: 'text-black', formatter: (v) => v ? new Date(v).toLocaleDateString('vi-VN') : '' },
+                    { key: 'roleStore', label: 'Loại giao dịch', className: 'text-black' }
                 ],
-                emptyMessage: 'Không có dữ liệu'
-            }
+                emptyMessage: 'Kho này chưa có lịch sử lưu trữ'
+            },
+            
         };
         return configs[relationType];
     };
@@ -567,7 +528,7 @@ const FormModal = ({ data, onSave, onCancel, mode = 'edit' }) => {
 
         // Handle special input types
         if (type === 'number') {
-            processedValue = value === '' ? '' : Number(value);
+            processedValue = value === '' ? null : Number(value);
         }
 
         setFormData({ ...formData, [name]: processedValue });
@@ -589,6 +550,7 @@ const FormModal = ({ data, onSave, onCancel, mode = 'edit' }) => {
         if (k.includes('date')) return 'date';
         if (k.includes('point') || k.includes('quantity') || k.includes('warranty')) return 'number';
         if (k.includes('price') || k.includes('amount') || k.includes('cost') || k.includes('salary')) return 'number';
+        if (k.toLowerCase().endsWith('id')) return 'number';
         if (k === 'position') return 'select';
         if (k.includes('status') || k.includes('method') || k.includes('type')) return 'select';
         return 'text';
@@ -682,18 +644,35 @@ export default function App() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
-    const [categories, setCategories] = useState([]);
+
     const [showRelationsModal, setShowRelationsModal] = useState(false);
-    const [relationsType, setRelationsType] = useState(''); // 'product-inventory', 'product-suppliers', 'vendor-products', 'inventory-products'
+    const [relationsType, setRelationsType] = useState('');
     const [relationsData, setRelationsData] = useState([]);
-    const [products, setProducts] = useState([]);
-    const [inventories, setInventories] = useState([]);
-    const [vendors, setVendors] = useState([]);
+
+    // --- NEW: State để lưu chính xác loại Resource đang thao tác ---
+    const [currentResourceType, setCurrentResourceType] = useState('');
+
+    const RESOURCE_CONFIG = {
+        // ... Các bảng cũ giữ nguyên ...
+        customers: { endpoint: '/customers', idKey: 'customerID' },
+        products: { endpoint: '/products', idKey: 'productID' },
+        orders: { endpoint: '/orders', idKey: 'orderID' },
+        staffs: { endpoint: '/staffs', idKey: 'staffID' },
+        inventories: { endpoint: '/inventories', idKey: 'inventoryID' },
+        payments: { endpoint: '/payments', idKey: 'paymentID' },
+        vendors: { endpoint: '/vendors', idKey: 'vendorID' },
+
+        // --- SỬA LẠI ĐOẠN NÀY ---
+        // Đổi 'idKeys' thành 'idKey'
+        supplies: { endpoint: '/supplies', idKey: 'productID' },
+        requests: { endpoint: '/requests', idKey: 'productID' },
+        stores: { endpoint: '/stores', idKey: 'productID' },
+    };
 
     const handleLogin = useCallback((userData) => {
         setUser(userData);
         localStorage.setItem('user', JSON.stringify(userData));
-        setActiveTab('customers'); // Reset về tab mặc định sau khi đăng nhập
+        setActiveTab('customers');
     }, []);
 
     const handleLogout = useCallback(() => {
@@ -702,7 +681,6 @@ export default function App() {
         setActiveTab('customers');
     }, []);
 
-    // Khôi phục trạng thái đăng nhập từ localStorage
     useEffect(() => {
         const savedUser = localStorage.getItem('user');
         if (savedUser) {
@@ -716,43 +694,9 @@ export default function App() {
         }
     }, []);
 
-    // Load categories
-    useEffect(() => {
-        if (activeTab === 'products') {
-            fetch(`${API_BASE_URL}${config.API_ENDPOINTS.CATEGORIES}`)
-                .then(res => res.json())
-                .then(data => setCategories(data.map(c => c.categoryName)))
-                .catch(err => console.error('Error loading categories:', err));
-        }
-    }, [activeTab]);
 
-    // Load products, inventories, vendors for forms
-    useEffect(() => {
-        if (user && (activeTab === 'inventory' || activeTab === 'products' || activeTab === 'vendors')) {
-            // Load products
-            fetch(`${API_BASE_URL}${config.API_ENDPOINTS.PRODUCTS}`)
-                .then(res => res.json())
-                .then(data => setProducts(data))
-                .catch(err => console.error('Error loading products:', err));
-
-            // Load inventories
-            fetch(`${API_BASE_URL}${config.API_ENDPOINTS.INVENTORIES}`)
-                .then(res => res.json())
-                .then(data => setInventories(data))
-                .catch(err => console.error('Error loading inventories:', err));
-
-            // Load vendors
-            fetch(`${API_BASE_URL}${config.API_ENDPOINTS.VENDORS}`)
-                .then(res => res.json())
-                .then(data => setVendors(data))
-                .catch(err => console.error('Error loading vendors:', err));
-        }
-    }, [activeTab, user]);
-
-    // Xử lý load dữ liệu
     const fetchData = useCallback(async (tabKey, search = '', category = '', status = '') => {
         if (!user || !tabKey) return;
-
         const tabInfo = TABS[tabKey];
         if (!tabInfo) return;
 
@@ -760,13 +704,11 @@ export default function App() {
         setError(null);
 
         try {
-            // Kiểm tra quyền truy cập cho tab hiện tại
             const permissions = POSITION_PERMISSIONS[user.position]?.[tabKey];
             if (!permissions || !permissions.includes('view')) {
                 throw new Error('Bạn không có quyền truy cập mục này');
             }
 
-            // Xây dựng URL với query parameters
             const params = new URLSearchParams();
             if (search) params.append('search', search);
             if (category && tabKey === 'products') params.append('category', category);
@@ -775,9 +717,7 @@ export default function App() {
             const url = `${API_BASE_URL}${tabInfo.endpoint}${params.toString() ? '?' + params.toString() : ''}`;
 
             const response = await fetch(url, {
-                headers: {
-                    'Authorization': `Bearer ${user.token}`,
-                },
+                headers: { 'Authorization': `Bearer ${user.token}` },
             });
 
             if (!response.ok) {
@@ -792,173 +732,39 @@ export default function App() {
             setData(result);
         } catch (err) {
             setError(err.message);
-            if (err.message === 'Phiên đăng nhập đã hết hạn') {
-                handleLogout();
-            }
+            if (err.message === 'Phiên đăng nhập đã hết hạn') handleLogout();
         } finally {
             setIsLoading(false);
         }
     }, [user, handleLogout]);
 
-    // Effect để load dữ liệu khi tab thay đổi hoặc sau khi đăng nhập
     useEffect(() => {
         if (user && activeTab && activeTab !== 'reports') {
             fetchData(activeTab, searchTerm, filterCategory, filterStatus);
         }
     }, [activeTab, fetchData, user, searchTerm, filterCategory, filterStatus]);
 
-    // Reset filters khi đổi tab
     useEffect(() => {
         setSearchTerm('');
         setFilterCategory('');
         setFilterStatus('');
     }, [activeTab]);
 
-    const handleRowClick = async (item) => {
-        setSelectedItem(item); // Always set the clicked item for potential editing
-        // Nếu đang ở tab đơn hàng, gọi API để lấy chi tiết đơn hàng
-        if (activeTab === 'orders') {
-            try {
-                const response = await fetch(`${API_BASE_URL}/requests/${item.orderID}`);
-                const detailsData = await response.json();
-                if (detailsData.length > 0) {
-                    setRelationsData(detailsData);
-                    setRelationsType('order-details');
-                    setShowRelationsModal(true);
-                } else {
-                    setModalMode('edit');
-                    setShowModal(true);
-                }
-            } catch (err) {
-                console.error('Error loading order details:', err);
-                setModalMode('edit');
-                setShowModal(true);
-            }
-
-        } else if (activeTab === 'vendors') {
-            // Hiển thị products được supply bởi vendor
-            try {
-                const response = await fetch(`${API_BASE_URL}/vendors/${item.vendorID}/products`);
-                const productsData = await response.json();
-
-                if (productsData.length > 0) {
-                    setRelationsData(productsData);
-                    setRelationsType('vendor-products');
-                    setShowRelationsModal(true);
-                } else {
-                    setModalMode('edit');
-                    setShowModal(true);
-                }
-            } catch (err) {
-                console.error('Error loading vendor products:', err);
-                setModalMode('edit');
-                setShowModal(true);
-            }
-        } else if (activeTab === 'inventory') {
-            // Hiển thị products được store trong inventory
-            try {
-                const response = await fetch(`${API_BASE_URL}/stores/inventory/${item.inventoryID}`);
-                const storesData = await response.json();
-
-                if (storesData.length > 0) {
-                    setRelationsData(storesData);
-                    setRelationsType('inventory-products');
-                    setShowRelationsModal(true);
-                } else {
-                    setModalMode('edit');
-                    setShowModal(true);
-                }
-            } catch (err) {
-                console.error('Error loading inventory products:', err);
-                setModalMode('edit');
-                setShowModal(true);
-            }
-        } else {
-            // Các tab khác giữ nguyên hành vi cũ
-            setModalMode('edit');
-            setShowModal(true);
-        }
-    };
-
     const getDefaultSchema = (tabKey) => {
+        // ... (Giữ nguyên logic getDefaultSchema cũ của bạn) ...
         const schemas = {
-            customers: {
-                customerID: '',
-                customerName: '',
-                customerType: 'Individual',
-                phone: '',
-                email: '',
-                address: '',
-                postalCode: '',
-                loyalLevel: 'New',
-                loyalPoint: 0
-            },
-            products: {
-                productID: '',
-                productName: '',
-                price: '',
-                productLine: '',
-                productScale: '',
-                productBrand: '',
-                productDescription: ''
-            },
-            payments: {
-                paymentID: '',
-                orderID: '',
-                paymentDate: new Date().toISOString().split('T')[0],
-                paymentAmount: '',
-                paymentMethod: '',
-                paymentStatus: 'Pending',
-                transactionID: '',
-                customerID: '',
-                note: ''
-            },
-            orders: {
-                orderID: '',
-                orderDate: new Date().toISOString().split('T')[0],
-                totalAmount: '',
-                orderStatus: 'Pending',
-                paymentStatus: 'Unpaid',
-                pickupMethod: '',
-                customerID: '',
-                staffID: ''
-            },
-            staff: {
-                staffID: '',
-                staffName: '',
-                position: '',
-                password: '',
-                phone: '',
-                email: '',
-                address: '',
-                managerID: '',
-                salary: ''
-            },
-            inventory: {
-                inventoryID: '',
-                warehouse: '',
-                productID: '',
-                maxStockLevel: '',
-                stockQuantity: '',
-                unitCost: '',
-                inventoryNote: '',
-                inventoryStatus: 'Active'
-            },
-            vendors: {
-                vendorID: '',
-                vendorName: '',
-                contactName: '',
-                phone: '',
-                email: '',
-                address: '',
-                vendorType: '',
-                paymentTerms: '',
-                vendorStatus: 'Active'
-            }
+            customers: { customerID: '', customerName: '', customerType: 'Individual', phone: '', email: '', address: '', postalCode: '', loyalLevel: 'New', loyalPoint: 0 },
+            products: { productID: '', productName: '', price: '', productLine: '', productScale: '', productBrand: '', productDescription: '' },
+            payments: { paymentID: '', orderID: '', paymentDate: new Date().toISOString().split('T')[0], paymentAmount: '', paymentMethod: '', paymentStatus: 'Pending', transactionID: '', customerID: '', note: '' },
+            orders: { orderID: '', orderDate: new Date().toISOString().split('T')[0], totalAmount: '', orderStatus: 'Pending', paymentStatus: 'Unpaid', pickupMethod: '', customerID: '', staffID: '' },
+            staffs: { staffID: '', staffName: '', position: '', password: '', phone: '', email: '', address: '', managerID: '', salary: '' },
+            inventories: { inventoryID: '', warehouse: '', productID: '', maxStockLevel: '', stockQuantity: '', unitCost: '', inventoryNote: '', inventoryStatus: 'Active' },
+            vendors: { vendorID: '', vendorName: '', contactName: '', phone: '', email: '', address: '', vendorType: '', paymentTerms: '', vendorStatus: 'Active' }
         };
-        return schemas[tabKey] || { name: '', description: '' };
+        return schemas[tabKey] || {};
     };
 
+    // --- UPDATE: handleCreate (Thêm logic set Resource Type) ---
     const handleCreate = () => {
         const permissions = POSITION_PERMISSIONS[user.position]?.[activeTab];
         if (!permissions || !permissions.includes('create')) {
@@ -969,46 +775,187 @@ export default function App() {
         const schema = data.length > 0 ?
             Object.keys(data[0]).reduce((acc, key) => ({ ...acc, [key]: '' }), {}) :
             getDefaultSchema(activeTab);
+
         setSelectedItem(schema);
         setModalMode('create');
+
+        // QUAN TRỌNG: Đang tạo mới cho Tab nào thì set type là Tab đó
+        setCurrentResourceType(activeTab);
+
         setShowModal(true);
     };
 
+    // --- UPDATE: handleItemEdit (Thêm logic set Resource Type) ---
+    const handleItemEdit = useCallback((item) => {
+        setSelectedItem(item);
+        setModalMode('edit');
+
+        // QUAN TRỌNG: Đang sửa item của Tab nào thì set type là Tab đó
+        setCurrentResourceType(activeTab);
+
+        setShowModal(true);
+    }, [activeTab]);
+
+    // --- UPDATE: handleRowClick (Logic quan trọng nhất) ---
+    const handleRowClick = async (item) => {
+        setSelectedItem(item);
+
+        const RELATION_CONFIG = {
+            orders: {
+                getEndpoint: (row) => `/requests/${row.orderID}`,
+                resourceName: 'requests',
+                modalType: 'request'
+            },
+            vendors: {
+                getEndpoint: (row) => `/supplies/${row.vendorID}`,
+                resourceName: 'supplies',
+                modalType: 'supplies'
+            },
+            inventories: { // Lưu ý tên tab là 'inventory' hay 'inventories' trong code của bạn
+                getEndpoint: (row) => `/stores/${row.inventoryID}`,
+                resourceName: 'stores',
+                modalType: 'stores'
+            },
+            // Map thêm key 'inventory' nếu activeTab của bạn là số ít
+            
+        };
+
+        const config = RELATION_CONFIG[activeTab];
+
+        if (config) {
+            try {
+                // QUAN TRỌNG: Đánh dấu là đang làm việc với BẢNG CON
+                setCurrentResourceType(config.resourceName);
+
+                const endpoint = `${API_BASE_URL}${config.getEndpoint(item)}`;
+                const response = await fetch(endpoint);
+
+                if (!response.ok) throw new Error('Lỗi tải dữ liệu chi tiết');
+
+                const childData = await response.json();
+
+                // Gắn thêm _resource để dự phòng, nhưng logic chính sẽ dùng currentResourceType
+                setRelationsData(childData.map(d => ({ ...d, _resource: config.resourceName })));
+                setRelationsType(config.modalType);
+                setShowRelationsModal(true);
+
+            } catch (err) {
+                console.error(`Error loading details for ${activeTab}:`, err);
+
+                // Nếu lỗi API con, fallback về sửa bảng CHA
+                setCurrentResourceType(activeTab);
+                setModalMode('edit');
+                setShowModal(true);
+            }
+        }
+        else {
+            // Không phải bảng có quan hệ -> Sửa bảng CHA
+            setCurrentResourceType(activeTab);
+            setModalMode('edit');
+            setShowModal(true);
+        }
+    };
+
     const handleSave = async (formData) => {
+        console.log("DEBUG handleSave - Config Type:", currentResourceType || activeTab);
+
         try {
+            // 1. Kiểm tra quyền hạn
             const permissions = POSITION_PERMISSIONS[user.position]?.[activeTab];
             const action = modalMode === 'edit' ? 'edit' : 'create';
             if (!permissions || !permissions.includes(action)) {
                 throw new Error(`Bạn không có quyền ${action === 'edit' ? 'chỉnh sửa' : 'thêm mới'} dữ liệu`);
             }
 
-            const isEdit = modalMode === 'edit';
-            const endpoint = isEdit
-                ? `${API_BASE_URL}${TABS[activeTab].endpoint}/${formData[Object.keys(formData)[0]]}`
-                : `${API_BASE_URL}${TABS[activeTab].endpoint}`;
+            // 2. Lấy cấu hình
+            const typeKey = currentResourceType || activeTab;
+            const config = RESOURCE_CONFIG[typeKey];
 
+            if (!config) {
+                throw new Error(`Lỗi cấu hình: Không tìm thấy config cho resource "${typeKey}"`);
+            }
+
+            // --- XỬ LÝ DỮ LIỆU (FIX LỖI 422) ---
+            // Tạo bản sao để xử lý dữ liệu trước khi gửi
+            const payload = { ...formData };
+
+            // Tự động chuyển đổi các trường số sang Number để Backend không báo lỗi 422
+            Object.keys(payload).forEach(key => {
+                const k = key.toLowerCase();
+                // Danh sách các từ khóa thường là số
+                if (k.includes('id') || k.includes('price') || k.includes('cost') || k.includes('amount') || k.includes('quantity') || k.includes('stock') || k.includes('point')) {
+                    if (payload[key] !== '' && payload[key] !== null) {
+                        payload[key] = Number(payload[key]);
+                    }
+                }
+            });
+
+            // 3. Tạo Endpoint
+            const isEdit = modalMode === 'edit';
+            let endpoint = `${API_BASE_URL}${config.endpoint}`;
+
+            if (isEdit) {
+                // Ưu tiên 1: Dùng idKey (Single Key) -> Tạo URL dạng /resource/ID
+                if (config.idKey) {
+                    // Tìm key ID trong payload (bất kể hoa thường)
+                    const actualIdKey = Object.keys(payload).find(k => k.toLowerCase() === config.idKey.toLowerCase());
+                    const recordID = actualIdKey ? payload[actualIdKey] : null;
+
+                    if (recordID) {
+                        endpoint += `/${recordID}`;
+                    } else {
+                        console.error(`LỖI: Không tìm thấy ID (${config.idKey}) trong dữ liệu form.`);
+                    }
+                }
+                // Ưu tiên 2: Dùng idKeys (Composite Key) -> Tạo URL dạng /resource?key=val
+                else if (config.idKeys && Array.isArray(config.idKeys)) {
+                    const params = new URLSearchParams();
+                    config.idKeys.forEach(key => {
+                        const actualKey = Object.keys(payload).find(k => k.toLowerCase() === key.toLowerCase());
+                        if (actualKey && payload[actualKey]) params.append(key, payload[actualKey]);
+                    });
+                    if (params.toString()) endpoint += `?${params.toString()}`;
+                }
+            }
+
+            console.log(`🚀 Sending ${isEdit ? 'PUT' : 'POST'} to: ${endpoint}`, payload);
+
+            // 4. Gọi API
             const response = await fetch(endpoint, {
                 method: isEdit ? 'PUT' : 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${user.token}`,
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload) // Gửi payload đã xử lý số liệu
             });
 
-            if (!response.ok) throw new Error(isEdit ? 'Lỗi khi cập nhật dữ liệu' : 'Lỗi khi thêm mới');
+            if (!response.ok) {
+                const errorText = await response.text();
+                // Thử parse JSON lỗi nếu có để hiển thị đẹp hơn
+                try {
+                    const errJson = JSON.parse(errorText);
+                    // Nếu lỗi là thiếu trường (ví dụ "Field required: note"), báo rõ ràng
+                    if (errJson.detail && Array.isArray(errJson.detail)) {
+                        const missingFields = errJson.detail.map(e => e.loc[1]).join(', ');
+                        throw new Error(`Dữ liệu không hợp lệ: Kiểm tra trường [${missingFields}]`);
+                    }
+                    throw new Error(errJson.detail || errJson.message || `Lỗi ${response.status}`);
+                } catch (err) {
+                    console.error('Error parsing error response JSON:', err);
+                    throw new Error(`Lỗi ${response.status}: ${errorText} `);
+                }
+            }
+
             setShowModal(false);
             fetchData(activeTab);
+            alert("Lưu dữ liệu thành công!");
+
         } catch (err) {
-            alert(err.message);
+            console.error(err);
+            alert("Thất bại: " + err.message);
         }
     };
-
-    const handleItemEdit = useCallback((item) => {
-        setSelectedItem(item);
-        setModalMode('edit');
-        setShowModal(true);
-    }, []);
 
     const handleItemDelete = useCallback(async (item) => {
         const permissions = POSITION_PERMISSIONS[user.position]?.[activeTab];
@@ -1027,9 +974,7 @@ export default function App() {
             const endpoint = `${API_BASE_URL}${TABS[activeTab].endpoint}/${id}`;
             await fetch(endpoint, {
                 method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${user.token}`,
-                },
+                headers: { 'Authorization': `Bearer ${user.token}` },
             });
             fetchData(activeTab);
         } catch (err) {
@@ -1052,9 +997,7 @@ export default function App() {
                 const endpoint = `${API_BASE_URL}${TABS[activeTab].endpoint}/${id}`;
                 await fetch(endpoint, {
                     method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${user.token}`,
-                    },
+                    headers: { 'Authorization': `Bearer ${user.token}` },
                 });
             }
             setSelectedRows([]);
@@ -1063,10 +1006,6 @@ export default function App() {
             alert('Lỗi khi xóa: ' + err.message);
         }
     };
-
-    if (!user) {
-        return <LoginPage onLogin={handleLogin} />;
-    }
 
     if (!user) {
         return <LoginPage onLogin={handleLogin} />;
@@ -1147,16 +1086,29 @@ export default function App() {
                                         />
                                     </div>
                                 </div>
-                                {activeTab === 'products' && categories.length > 0 && (
+                                {activeTab === 'products' && (
                                     <select
                                         value={filterCategory}
                                         onChange={(e) => setFilterCategory(e.target.value)}
                                         className="px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                     >
                                         <option value="">Tất cả danh mục</option>
-                                        {categories.map(cat => (
-                                            <option key={cat} value={cat}>{cat}</option>
-                                        ))}
+                                        <option value="CPU">CPU</option>
+                                        <option value="GPU">GPU</option>
+                                        <option value="RAM">RAM</option>
+                                        <option value="Mainboard">Mainboard</option>
+                                        <option value="Storage">Storage</option>
+                                        <option value="PSU">PSU</option>
+                                        <option value="Case">Case</option>
+                                        <option value="Cooling">Cooling</option>
+                                        <option value="Monitor">Monitor</option>
+                                        <option value="Mouse">Mouse</option>
+                                        <option value="Keyboard">Keyboard</option>
+                                        <option value="Headset">Headset</option>
+                                        <option value="Speaker">Speaker</option>
+                                        <option value="Accessory">Accessory</option>
+
+
                                     </select>
                                 )}
                                 {activeTab === 'orders' && (
@@ -1201,9 +1153,6 @@ export default function App() {
                     onSave={handleSave}
                     onCancel={() => setShowModal(false)}
                     mode={modalMode}
-                    products={products}
-                    inventories={inventories}
-                    vendors={vendors}
                 />
             )}
 
